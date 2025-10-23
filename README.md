@@ -1,0 +1,1 @@
+Need to refactor and add better error handling in login and register components
