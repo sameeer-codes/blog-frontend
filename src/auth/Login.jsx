@@ -17,7 +17,6 @@ function Login() {
 
   async function handleLogin(data) {
     const loginData = data;
-
     console.log(data);
     return data;
 
@@ -56,18 +55,26 @@ function Login() {
             placeholder="Enter your Email"
             className="w-full border p-2 px-3 rounded-sm border-gray-300"
           />
+          {errors.email && (
+            <p className="text-red-700 text-sm">{errors.email.message}</p>
+          )}
           <input
             type="password"
             {...register("password", {
               required: "Please enter your password",
-              min: {
-                value: 8,
-                message: "Passwords must be a minimum of 8 characters long",
+              pattern: {
+                value:
+                  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,16}$/,
+                message:
+                  "Password must contain at least one lower case, upper case and one special character and number",
               },
             })}
             placeholder="Enter your Password"
             className="w-full border p-2 px-3 rounded-sm border-gray-300"
           />
+          {errors.password && (
+            <p className="text-red-700 text-sm">{errors.password.message}</p>
+          )}
           <div>
             <button className="text-blue-700 hover:text-blue-900 transition-all cursor-pointer">
               Forgot Password?
