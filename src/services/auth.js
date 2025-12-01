@@ -1,4 +1,4 @@
-const baseApi = 'http://localhost:8800/api/auth';
+const baseApi = import.meta.env.VITE_API_URL;
 
 export const register = async (formData) => {
     try {
@@ -19,7 +19,7 @@ export const register = async (formData) => {
 
 export const login = async (loginData) => {
     try {
-        const response = await fetch(`http://localhost:8800/api/auth/login`, {
+        const response = await fetch(`${baseApi}/login`, {
             method: 'POST',
             credentials: 'include',
             headers: {
@@ -34,4 +34,17 @@ export const login = async (loginData) => {
     catch (error) {
         return error;
     }
+}
+
+export const getJwt = async () => {
+    const response = await fetch(`${baseApi}/refresh-token`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+
+    const result = await response.json()
+    return result;
 }

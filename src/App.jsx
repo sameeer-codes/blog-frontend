@@ -1,10 +1,10 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router'
 import './index.css'
-import Register from './users/Register'
+import Register from './auth/Register'
 import NotFound from './NotFound'
 import Home from './Pages/Home'
-import Login from './users/Login'
-import { AuthProvider } from './context/authContext'
+import Login from './auth/Login'
+import { AuthProvider } from './context/AuthContext'
 
 function App() {
   return <>

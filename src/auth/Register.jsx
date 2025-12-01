@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { register } from "../services/auth";
+import useApi from "../utils/useApi";
 
 function Register() {
 
     const [username, setUsername] = useState('')
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
+    const api = useApi();
 
     let handleUsername = (e) => setUsername(e.target.value);
     let handleEmail = (e) => setEmail(e.target.value);
@@ -20,7 +22,12 @@ function Register() {
             'password': password
         }
 
-        const result = register(registerData);
+        const response = api.post('/auth/register', registerData);
+        if (await response.status) {
+            console.log(await response.data)
+        } else {
+            console.log(console.log(await response.error));
+        }
     }
 
     return <>

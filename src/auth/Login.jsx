@@ -1,35 +1,29 @@
 import React, { useContext, useEffect, useState } from "react";
-import { login } from "../services/auth";
-import { AuthContext } from "../context/authContext";
+import { AuthContext } from "../context/AuthContext";
+import useApi from "../utils/useApi";
+import { useForm } from "react-hook-form";
 
 function Login() {
 
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
-    const { token, setToken } = useContext(AuthContext)
+    const [token, setToken] = useContext(AuthContext)
+    const { register, handleSubmit, formState: { errors } } = useForm();
+    // Create API instance 
+    const api = useApi();
 
-    useEffect(function () {
-        console.log(token);
-    }, [token])
+    async function handleLogin(data) {
+        const loginData = data;
 
-    let handleEmail = (e) => setEmail(e.target.value);
-    let handlePassword = (e) => setPassword(e.target.value);
+        console.log(data)
+        return data;
 
-    async function handleLogin(e) {
-        e.preventDefault()
-
-        const loginData = {
-            'email': email,
-            'password': password
-        }
-        const response = await login(loginData);
+        const response = api.post('/auth/login', loginData)
 
         if (response.status === "success") {
-            const { data, message } = response;
+            const { data } = response;
             setToken(data.jwt)
-        }
-
-        else {
+        } else {
             console.log(response);
         }
 
@@ -41,8 +35,8 @@ function Login() {
         <div className="h-screen w-full grid place-items-center  bg-gray-200 p-4">
             <form className="flex flex-col w-full max-w-100 p-8  bg-white rounded-md gap-4 shadow-md" onSubmit={handleLogin}>
                 <h2 className="text-center text-4xl font-medium mb-4 pb-4 border-b-2 border-b-blue-700">Login</h2>
-                <input type="email" placeholder="Enter your Email" className="w-full border p-2 px-3 rounded-sm border-gray-300" onChange={handleEmail} value={email} />
-                <input type="password" placeholder="Enter your Password" className="w-full border p-2 px-3 rounded-sm border-gray-300" onChange={handlePassword} value={password} />
+                <input type="email" placeholder="Enter your Email" className="w-full border p-2 px-3 rounded-sm border-gray-300" />
+                <input type="password" placeholder="Enter your Password" className="w-full border p-2 px-3 rounded-sm border-gray-300" />
                 <div>
                     <button className="text-blue-700 hover:text-blue-900 transition-all cursor-pointer">Forgot Password?</button>
                 </div>
