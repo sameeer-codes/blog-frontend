@@ -1,6 +1,6 @@
 import { useContext, useRef, useEffect, useMemo } from "react";
 import axios from "axios";
-import { AuthContext } from "../context/AuthContext";
+import { AuthContext } from "../stores/AuthContext";
 
 const apiUrl = import.meta.env.VITE_API_URL;
 

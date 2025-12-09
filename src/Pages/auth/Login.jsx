@@ -1,23 +1,25 @@
 import React, { useContext, useEffect, useState } from "react";
-import { AuthContext } from "../context/AuthContext";
-import useApi from "../utils/useApi";
 import { useForm } from "react-hook-form";
+import Button from "../../ui/Button";
+import { AuthContext } from "../../stores/AuthContext";
+import useApi from "../../hooks/useApi";
+import Input from "../../ui/Input";
 
 function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [token, setToken] = useContext(AuthContext);
   const {
     register,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm();
-  // Create API instance
+
   const api = useApi();
 
   async function handleLogin(data) {
     const loginData = data;
     console.log(data);
+    reset();
     return data;
 
     const response = api.post("/auth/login", loginData);
@@ -28,9 +30,6 @@ function Login() {
     } else {
       console.log(response);
     }
-
-    setEmail("");
-    setPassword("");
   }
 
   return (
@@ -41,9 +40,9 @@ function Login() {
           onSubmit={handleSubmit(handleLogin)}
         >
           <h2 className="text-center text-4xl font-medium mb-4 pb-4 border-b-2 border-b-blue-700">
-            Login
+            Log in
           </h2>
-          <input
+          {/* <input
             type="email"
             {...register("email", {
               required: "Email is required",
@@ -54,11 +53,24 @@ function Login() {
             })}
             placeholder="Enter your Email"
             className="w-full border p-2 px-3 rounded-sm border-gray-300"
+          /> */}
+          <Input
+            type={"email"}
+            validation={{
+              ...register("email", {
+                required: "Email is required",
+                pattern: {
+                  value: /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/,
+                  message: "Please enter a valid email",
+                },
+              }),
+            }}
+            placeholder={"Enter your Email"}
           />
           {errors.email && (
             <p className="text-red-700 text-sm">{errors.email.message}</p>
           )}
-          <input
+          <Input
             type="password"
             {...register("password", {
               required: "Please enter your password",
@@ -70,22 +82,14 @@ function Login() {
               },
             })}
             placeholder="Enter your Password"
-            className="w-full border p-2 px-3 rounded-sm border-gray-300"
           />
           {errors.password && (
             <p className="text-red-700 text-sm">{errors.password.message}</p>
           )}
           <div>
-            <button className="text-blue-700 hover:text-blue-900 transition-all cursor-pointer">
-              Forgot Password?
-            </button>
+            <Button children={"Forgot Password"} variant={"link"} />
           </div>
-          <button
-            type="Submit"
-            className="p-2 bg-blue-700 rounded-md text-white cursor-pointer hover:bg-blue-900 transition-all font-medium uppercase"
-          >
-            Login
-          </button>
+          <Button children="Log in" type="submit" variant="secondary" />
         </form>
       </div>
     </>

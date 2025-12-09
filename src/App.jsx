@@ -1,28 +1,35 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router'
-import './index.css'
-import Register from './auth/Register'
-import NotFound from './NotFound'
-import Home from './Pages/Home'
-import Login from './auth/Login'
-import { AuthProvider } from './context/AuthContext'
+import { BrowserRouter as Router, Routes, Route } from "react-router";
+import "./index.css";
+import NotFound from "./404";
+import Home from "./Pages/Home";
+import { AuthProvider } from "./stores/AuthContext";
+import Blog from "./Pages/Blog";
+import CreatePost from "./Pages/posts/CreatePost";
+import Register from "./Pages/auth/Register";
+import Login from "./Pages/auth/Login";
 
 function App() {
-  return <>
-    <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path='/' element={<Home />} />
-          {/* Admin Routes  */}
-          <Route path='/auth'>
-            <Route path='/auth/register' element={<Register />} />
-            <Route path='/auth/login' element={<Login />} />
-          </Route>
-          {/* Not Found Route */}
-          <Route path='*' element={<NotFound />} />
-        </Routes>
-      </Router>
-    </AuthProvider>
-  </>
+  return (
+    <>
+      <AuthProvider>
+        <Router>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            {/* Admin Routes  */}
+            <Route>
+              <Route path="/auth/register" element={<Register />} />
+              <Route path="/auth/login" element={<Login />} />
+            </Route>
+            {/* Post routes */}
+            <Route path="/blog/:slug" element={<Blog />} />
+            <Route path="/post/create" element={<CreatePost />} />
+            {/* Not Found Route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Router>
+      </AuthProvider>
+    </>
+  );
 }
 
-export default App
+export default App;
