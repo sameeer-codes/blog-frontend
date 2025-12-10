@@ -42,18 +42,6 @@ function Login() {
           <h2 className="text-center text-4xl font-medium mb-4 pb-4 border-b-2 border-b-blue-700">
             Log in
           </h2>
-          {/* <input
-            type="email"
-            {...register("email", {
-              required: "Email is required",
-              pattern: {
-                value: /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/,
-                message: "Please enter a valid email",
-              },
-            })}
-            placeholder="Enter your Email"
-            className="w-full border p-2 px-3 rounded-sm border-gray-300"
-          /> */}
           <Input
             type={"email"}
             validation={{
@@ -72,15 +60,17 @@ function Login() {
           )}
           <Input
             type="password"
-            {...register("password", {
-              required: "Please enter your password",
-              pattern: {
-                value:
-                  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,16}$/,
-                message:
-                  "Password must contain at least one lower case, upper case and one special character and number",
-              },
-            })}
+            validation={{
+              ...register("password", {
+                required: "Please enter your password",
+                pattern: {
+                  value:
+                    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,16}$/,
+                  message:
+                    "Password must contain at least one lower case, upper case and one special character and number",
+                },
+              }),
+            }}
             placeholder="Enter your Password"
           />
           {errors.password && (
@@ -89,7 +79,7 @@ function Login() {
           <div>
             <Button children={"Forgot Password"} variant={"link"} />
           </div>
-          <Button children="Log in" type="submit" variant="secondary" />
+          <Button children="Log in" type="submit" variant="primary" />
         </form>
       </div>
     </>

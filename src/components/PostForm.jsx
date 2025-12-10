@@ -42,12 +42,16 @@ export default function PostForm({ formSubmit, formdata = {} }) {
 
   return (
     <div className="p-4 flex flex-col max-w-[768px] m-auto rounded-md">
+      <h2 className="text-4xl mb-8 mt-4 text-center">Create Post</h2>
       <form onSubmit={handleSubmit(formSubmit)}>
         <div>
+          <label htmlFor="postTitle" className="mb-2 font-medium text-xl">
+            Post Title:{" "}
+          </label>
           <Input
+            placeholder={"Enter your post Title"}
             type="text"
             id={"postTitle"}
-            placeholder="Enter your post Title"
             validation={{
               ...register("postTitle", { required: "Title is required" }),
             }}
@@ -58,6 +62,7 @@ export default function PostForm({ formSubmit, formdata = {} }) {
         </div>
 
         <div style={{ marginTop: "20px" }}>
+          <p className="mb-2 font-medium text-xl">Post Content: </p>
           <Controller
             name="content"
             control={control}
