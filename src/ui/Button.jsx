@@ -1,9 +1,10 @@
 export default function Button({
   children,
   onClick,
-  className,
+  classes,
   type,
   variant,
+  id,
 }) {
   let styles = "";
   switch (variant) {
@@ -27,8 +28,9 @@ export default function Button({
   return (
     <button
       type={type}
-      className={`${styles} ${className || ""}`}
+      className={`${styles} ${classes || ""}`}
       onClick={onClick}
+      id={id}
     >
       {children}
     </button>

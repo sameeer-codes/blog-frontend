@@ -2,92 +2,78 @@ import { Controller, useForm } from "react-hook-form";
 import TextEditor from "../ui/TextEditor";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
+import { useEffect, useState } from "react";
+import StepOne from "../ui/PostForm/StepOne";
+import StepTwo from "../ui/PostForm/StepTwo";
 
 export default function PostForm({ formSubmit, formdata = {} }) {
-  const { postTitle, postBody } = formdata;
+  const { postTitle, postContent } = formdata;
 
   const {
     control,
     register,
     handleSubmit,
     reset,
+    trigger,
     formState: { errors },
   } = useForm({
     defaultValues: {
       postTitle: postTitle || " ",
-      content: postBody || " ",
+      postContent: postContent || " ",
     },
   });
 
-  const toolbarOptions = [
-    [{ header: [1, 2, 3, 4, 5, 6, false] }],
-    ["bold", "italic", "underline"],
-    [{ list: "ordered" }, { list: "bullet" }],
-    ["blockquote", "code-block"],
-    ["link"],
-    ["clean"],
+  const steps = [
+    {
+      fields: ["postTitle", "postContent"],
+      component: StepOne,
+    },
+    {
+      fields: [],
+      component: StepTwo,
+    },
   ];
 
-  const modules = { toolbar: toolbarOptions };
-  const formats = [
-    "header",
-    "bold",
-    "italic",
-    "underline",
-    "list",
-    "blockquote",
-    "code-block",
-    "link",
-  ];
+  const [step, setStep] = useState(0);
+  const CurrentStep = steps[step].component;
+
+  const handleNext = async () => {
+    const isValid = await trigger(steps[step].fields);
+    console.log(isValid, steps[step].fields);
+
+    if (isValid) {
+      setStep((prevStep) => prevStep + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    setStep((prevStep) => prevStep - 1);
+  };
 
   return (
     <div className="p-4 flex flex-col max-w-[768px] m-auto rounded-md">
-      <h2 className="text-4xl mb-8 mt-4 text-center">Create Post</h2>
+      <h2 className="text-4xl mb-8 mt-4 text-center font-bold">Create Post</h2>
       <form onSubmit={handleSubmit(formSubmit)}>
-        <div>
-          <label htmlFor="postTitle" className="mb-2 font-medium text-xl">
-            Post Title:{" "}
-          </label>
-          <Input
-            placeholder={"Enter your post Title"}
-            type="text"
-            id={"postTitle"}
-            validation={{
-              ...register("postTitle", { required: "Title is required" }),
-            }}
+        <CurrentStep control={control} register={register} errors={errors} />
+        {step > 0 && (
+          <Button
+            children={"Previous"}
+            variant={"primary"}
+            classes={"float-left min-w-[100px] mt-4 rounded-none"}
+            id="prevBtn"
+            onClick={handlePrev}
           />
-          {errors.postTitle && (
-            <p style={{ color: "red" }}>{errors.postTitle.message}</p>
-          )}
-        </div>
-
-        <div style={{ marginTop: "20px" }}>
-          <p className="mb-2 font-medium text-xl">Post Content: </p>
-          <Controller
-            name="content"
-            control={control}
-            rules={{ required: "Content is required" }}
-            render={({ field, fieldState }) => (
-              <>
-                <TextEditor
-                  value={field.value}
-                  onChange={field.onChange}
-                  modules={modules}
-                  formats={formats}
-                />
-                {fieldState.error && (
-                  <p style={{ color: "red" }}>{fieldState.error.message}</p>
-                )}
-              </>
-            )}
+        )}
+        {step < steps.length - 1 && (
+          <Button
+            children={"Next"}
+            variant={"primary"}
+            classes={"float-right min-w-[100px] mt-4"}
+            id="nextBtn"
+            onClick={handleNext}
           />
-        </div>
-
-        <Button
-          type={"submit"}
-          children={"Publish"}
-          className={"mt-4 w-full"}
-        />
+        )}
+        {/* <Button type={"submit"} children={"Publish"} classes={"mt-4 w-full"} /> */}
       </form>
     </div>
   );

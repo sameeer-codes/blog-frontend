@@ -7,6 +7,7 @@ import Blog from "./Pages/Blog";
 import CreatePost from "./Pages/posts/CreatePost";
 import Register from "./Pages/auth/Register";
 import Login from "./Pages/auth/Login";
+import Testing from "./Pages/testing";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Router>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/test" element={<Testing />} />
             {/* Admin Routes  */}
             <Route>
               <Route path="/auth/register" element={<Register />} />

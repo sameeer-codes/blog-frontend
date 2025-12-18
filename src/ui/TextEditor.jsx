@@ -1,6 +1,12 @@
 import ReactQuill from "react-quill-new";
 import "react-quill-new/dist/quill.snow.css";
-export default function TextEditor({ value, onChange, modules, formats }) {
+export default function TextEditor({
+  value,
+  onChange,
+  modules,
+  formats,
+  classes,
+}) {
   return (
     <ReactQuill
       theme="snow"
@@ -9,6 +15,7 @@ export default function TextEditor({ value, onChange, modules, formats }) {
       modules={modules}
       formats={formats}
       placeholder="Please enter your post content here"
+      className={`${classes}`}
     />
   );
 }
