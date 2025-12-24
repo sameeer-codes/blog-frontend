@@ -35,7 +35,13 @@ export default function StepOne({ register, control, errors }) {
           type="text"
           id={"postTitle"}
           validation={{
-            ...register("postTitle", { required: "Title is required" }),
+            ...register("postTitle", {
+              required: "Title is required",
+              minLength: {
+                value: 30,
+                message: "Title must be atleast 30 Characters Long",
+              },
+            }),
           }}
           classes={"mt-2"}
         />

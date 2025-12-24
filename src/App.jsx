@@ -25,6 +25,8 @@ function App() {
             {/* Post routes */}
             <Route path="/blog/:slug" element={<Blog />} />
             <Route path="/post/create" element={<CreatePost />} />
+            {/* Media Routes  */}
+            {/* <Route path="/uploads" element={< />} /> */}
             {/* Not Found Route */}
             <Route path="*" element={<NotFound />} />
           </Routes>

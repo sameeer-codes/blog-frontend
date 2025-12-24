@@ -31,7 +31,7 @@ export default function PostForm({ formSubmit, formdata = {} }) {
     {
       fields: [],
       component: StepTwo,
-    },
+    }
   ];
 
   const [step, setStep] = useState(0);
@@ -39,7 +39,6 @@ export default function PostForm({ formSubmit, formdata = {} }) {
 
   const handleNext = async () => {
     const isValid = await trigger(steps[step].fields);
-    console.log(isValid, steps[step].fields);
 
     if (isValid) {
       setStep((prevStep) => prevStep + 1);
