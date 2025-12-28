@@ -1,9 +1,5 @@
-import ImageUpload from "../ui/ImageUpload";
+// import ImageUpload from "../ui/ImageUpload";
 
 export default function Testing() {
-  return (
-    <>
-      <ImageUpload />
-    </>
-  );
+  return <>{/* <ImageUpload /> */}</>;
 }

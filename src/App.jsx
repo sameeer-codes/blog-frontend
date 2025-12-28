@@ -8,6 +8,7 @@ import CreatePost from "./Pages/posts/CreatePost";
 import Register from "./Pages/auth/Register";
 import Login from "./Pages/auth/Login";
 import Testing from "./Pages/testing";
+import Uploads from "./Pages/Uploads";
 
 function App() {
   return (
@@ -26,7 +27,7 @@ function App() {
             <Route path="/blog/:slug" element={<Blog />} />
             <Route path="/post/create" element={<CreatePost />} />
             {/* Media Routes  */}
-            {/* <Route path="/uploads" element={< />} /> */}
+            <Route path="/uploads" element={<Uploads />} />
             {/* Not Found Route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
