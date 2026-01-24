@@ -1,9 +1,12 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { register } from "../../services/auth";
 import useApi from "../../hooks/useApi";
 import { useForm } from "react-hook-form";
 import Input from "../../ui/Input";
 import Button from "../../ui/Button";
+import { Link, redirect } from "react-router";
+import { BiArrowBack } from "react-icons/bi";
+import axios from "axios";
 
 function Register() {
   const {
@@ -12,33 +15,49 @@ function Register() {
     handleSubmit,
     formState: { errors },
   } = useForm();
+
   const api = useApi();
 
-  const submitRegister = async (data) => {
-    e.preventDefault();
+  const [loading, setLoading] = useState(false);
+  const [requestError, setRequestError] = useState(false);
 
+  const submitRegister = async (data) => {
+    setLoading(true);
+    console.log("Submit triggered");
     const registerData = data;
 
-    console.log(data);
-
-    return;
-
-    // Register Logic Start
-    const response = api.post("/auth/register", registerData);
-    if (await response.status) {
-      console.log(await response.data);
-    } else {
-      console.log(console.log(await response.error));
+    try {
+      const response = await api.post("/auth/register", registerData);
+      if (response) {
+        setLoading(false);
+        redirect("/auth/login");
+      }
+    } catch (e) {
+      if (e.response.data.code === 409) {
+        setRequestError("Account already exists, please try login,");
+      } else if (e.response.data.code === 403) {
+        setRequestError("Already logged in.");
+      } else {
+        setRequestError(
+          "There was an error creating your account please try again later.",
+        );
+      }
+    } finally {
+      setLoading(false);
     }
-    //Register Logic Ends Here
   };
 
   return (
     <>
       <div className="h-screen w-full grid place-items-center  bg-gray-200 p-4">
+        <div className="absolute top-4 left-4 text-blue-900">
+          <Link to={"/"} className="flex gap-2 items-center">
+            <BiArrowBack /> Back to Home
+          </Link>
+        </div>
         <form
           className="flex flex-col w-full max-w-100 p-8  bg-white rounded-md gap-4 shadow-md"
-          onSubmit={handleSubmit(submitRegister)}
+          onSubmit={loading ? handleSubmit() : handleSubmit(submitRegister)}
         >
           <h2 className="text-center text-4xl font-medium mb-4 pb-4 border-b-2 border-b-blue-700">
             Register
@@ -109,6 +128,10 @@ function Register() {
           />
           {errors.password && (
             <p className="text-red-700 text-sm">{errors.password.message}</p>
+          )}
+
+          {requestError && (
+            <p className="text-red-700 text-sm">{requestError}</p>
           )}
           <p className="text-sm">
             By Signing up, you agree to our privacy policy and terms and

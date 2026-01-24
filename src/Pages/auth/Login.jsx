@@ -4,9 +4,19 @@ import Button from "../../ui/Button";
 import { AuthContext } from "../../stores/AuthContext";
 import useApi from "../../hooks/useApi";
 import Input from "../../ui/Input";
+import { Link, useNavigate } from "react-router";
+import { BiArrowBack } from "react-icons/bi";
+import axios from "axios";
 
 function Login() {
-  const [token, setToken] = useContext(AuthContext);
+  const {
+    token: [authToken, setAuthToken],
+    loggedIn: [isLoggedIn, setIsLoggedIn],
+  } = useContext(AuthContext);
+
+  const [requestError, setRequestError] = useState(false);
+  const navigate = useNavigate();
+
   const {
     register,
     handleSubmit,
@@ -14,30 +24,50 @@ function Login() {
     formState: { errors },
   } = useForm();
 
+  const [loading, setLoading] = useState(false);
   const api = useApi();
 
   async function handleLogin(data) {
+    setLoading(true);
     const loginData = data;
-    console.log(data);
-    reset();
-    return data;
+    setTimeout(async () => {
+      try {
+        const response = await api.post("/auth/login", loginData);
+        const { data } = response;
+        const token = data.data.jwt;
+        reset();
+        setAuthToken(token);
+        localStorage.setItem("isLoggedIn", JSON.stringify(true));
+        navigate("/");
+        setLoading(false);
+      } catch (error) {
+        if (error.response.data.code === 401) {
+          setRequestError("Please check your email or password, and try again");
+        } else if (error.response.data.code === 403) {
+          setRequestError("Already logged in.");
+          navigate("/");
+        } else {
+          setRequestError("There was an error logging in, Please try again");
+        }
 
-    const response = api.post("/auth/login", loginData);
-
-    if (response.status === "success") {
-      const { data } = response;
-      setToken(data.jwt);
-    } else {
-      console.log(response);
-    }
+        setLoading(false);
+      } finally {
+        setLoading(false);
+      }
+    }, 2000);
   }
 
   return (
     <>
       <div className="h-screen w-full grid place-items-center  bg-gray-200 p-4">
+        <div className="absolute top-4 left-4 text-blue-900">
+          <Link to={"/"} className="flex gap-2 items-center">
+            <BiArrowBack /> Back to Home
+          </Link>
+        </div>
         <form
           className="flex flex-col w-full max-w-100 p-8  bg-white rounded-md gap-4 shadow-md"
-          onSubmit={handleSubmit(handleLogin)}
+          onSubmit={loading ? handleSubmit(null) : handleSubmit(handleLogin)}
         >
           <h2 className="text-center text-4xl font-medium mb-4 pb-4 border-b-2 border-b-blue-700">
             Log in
@@ -76,10 +106,19 @@ function Login() {
           {errors.password && (
             <p className="text-red-700 text-sm">{errors.password.message}</p>
           )}
+
+          {requestError && (
+            <p className="text-red-700 text-sm">{requestError}</p>
+          )}
           <div>
             <Button children={"Forgot Password"} variant={"link"} />
           </div>
-          <Button children="Log in" type="submit" variant="primary" />
+          <Button
+            children="Log in"
+            type="submit"
+            variant="primary"
+            classes={loading ? "!cursor-wait !bg-blue-500 !text-gray-100" : ""}
+          />
         </form>
       </div>
     </>

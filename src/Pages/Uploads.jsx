@@ -7,6 +7,7 @@ export default function Uploads() {
   const [files, setfiles] = useState([]);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState(null);
+  const api = useApi();
 
   useEffect(
     function () {
@@ -30,12 +31,10 @@ export default function Uploads() {
 
     const formdata = new FormData();
     files.forEach((file) => {
-      // console.log(file);
-      formdata.append("files", file);
+      console.log(file);
+      formdata.append("files[]", file);
     });
-    formdata.append("files", files);
     try {
-      const api = useApi;
       const response = await api.post("/uploads/add", formdata, {
         onUploadProgress: (progressEvent) => {
           const percent = Math.round(
@@ -45,8 +44,9 @@ export default function Uploads() {
           setProgress(percent);
         },
       });
-      console.log(response);
+      console.log(response.data);
     } catch (error) {
+      console.log(error);
       setError(error);
     }
   }
@@ -64,7 +64,7 @@ export default function Uploads() {
             multiple
             className="bg-gray-200 p-2"
             type="file"
-            name="upload"
+            name="files"
             placeholder="Please select an image"
             id="files"
             onChange={handlefilesChangeEvent}

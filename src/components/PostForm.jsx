@@ -3,10 +3,8 @@ import TextEditor from "../ui/TextEditor";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
 import { useEffect, useState } from "react";
-import StepOne from "../ui/PostForm/StepOne";
-import StepTwo from "../ui/PostForm/StepTwo";
 
-export default function PostForm({ formSubmit, formdata = {} }) {
+export default function PostForm({ className, formSubmit, formdata = {} }) {
   const { postTitle, postContent } = formdata;
 
   const {
@@ -23,56 +21,45 @@ export default function PostForm({ formSubmit, formdata = {} }) {
     },
   });
 
-  const steps = [
-    {
-      fields: ["postTitle", "postContent"],
-      component: StepOne,
-    },
-    {
-      fields: [],
-      component: StepTwo,
-    }
-  ];
-
-  const [step, setStep] = useState(0);
-  const CurrentStep = steps[step].component;
-
-  const handleNext = async () => {
-    const isValid = await trigger(steps[step].fields);
-
-    if (isValid) {
-      setStep((prevStep) => prevStep + 1);
-    }
-  };
-
-  const handlePrev = () => {
-    setStep((prevStep) => prevStep - 1);
-  };
-
   return (
-    <div className="p-4 flex flex-col max-w-[768px] m-auto rounded-md">
+    <div className={`p-4 flex flex-col m-auto rounded-md ${className}`}>
       <h2 className="text-4xl mb-8 mt-4 text-center font-bold">Create Post</h2>
       <form onSubmit={handleSubmit(formSubmit)}>
-        <CurrentStep control={control} register={register} errors={errors} />
-        {step > 0 && (
-          <Button
-            children={"Previous"}
-            variant={"primary"}
-            classes={"float-left min-w-[100px] mt-4 rounded-none"}
-            id="prevBtn"
-            onClick={handlePrev}
-          />
-        )}
-        {step < steps.length - 1 && (
-          <Button
-            children={"Next"}
-            variant={"primary"}
-            classes={"float-right min-w-[100px] mt-4"}
-            id="nextBtn"
-            onClick={handleNext}
-          />
-        )}
-        {/* <Button type={"submit"} children={"Publish"} classes={"mt-4 w-full"} /> */}
+        <div className="">
+          <label htmlFor="postTitle">Post Title:</label>
+          <Input validation={{ ...register("postTitle") }} />
+        </div>
+        <div className="mt-4">
+          <label htmlFor="postFeaturedImage">Post Featured Image URL:</label>
+          <Input validation={{ ...register("postFeaturedImage") }} />
+        </div>
+        <div className="mt-4">
+          <label htmlFor="postStatus">Post Status:</label>
+          <select {...register("postStatus")}>
+            <option value="draft">Draft</option>
+            <option value="publish">Publish</option>
+          </select>
+        </div>
+        <div className="mt-4">
+          <label htmlFor="postContent">Post Content:</label>
+          <textarea
+            {...register("postContent")}
+            className="w-full p-2 border-solid border-[1px] border-gray-300 rounded-sm min-h-[46vh] resize-none overflow-y-scroll"
+          ></textarea>
+        </div>
+        <div className="mt-4">
+          <label htmlFor="postTitle">Post Excerpt:</label>
+          <textarea
+            {...register("postExcerpt")}
+            className="w-full p-2 border-solid border-[1px] border-gray-300 rounded-sm min-h-[6vh] resize-none overflow-y-scroll"
+          ></textarea>
+        </div>
+        <Button
+          type={"submit"}
+          children={"Submit"}
+          variant={"primary"}
+          classes={"float-right min-w-[100px] mt-4"}
+        />
       </form>
     </div>
   );

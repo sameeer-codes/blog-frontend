@@ -6,13 +6,16 @@ export default function CreatePost() {
   }
   return (
     <>
-      <PostForm
-        formSubmit={submitHandle}
-        formdata={{
-          postTitle: "Hello World",
-          postContent: "Hello World",
-        }}
-      />
+      <div className="flex">
+        <PostForm
+          formSubmit={submitHandle}
+          formdata={{
+            postTitle: "Hello World",
+            postContent: "Hello World",
+          }}
+          className={"w-full p-8"}
+        />
+      </div>
     </>
   );
 }
