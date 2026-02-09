@@ -6,29 +6,49 @@ export default function Header() {
   const {
     loggedIn: [isLoggedIn, setIsLoggedIn],
   } = useContext(AuthContext);
-  
+
+  const links = [
+    {
+      key: "Home",
+      value: "/",
+    },
+    {
+      key: "About",
+      value: "/about",
+    },
+    {
+      key: "Services",
+      value: "/services",
+    },
+    {
+      key: "Contact",
+      value: "/contact",
+    },
+  ];
+
   return (
     <>
-      <header className="flex items-center bg-gray-900 text-white">
+      <header className="flex items-center bg-gray-100 absolute w-full top-0">
         <div className="max-w-[1280px] mx-auto w-full px-4 py-2 flex justify-between items-center">
-          <div className="text-2xl font-medium">
+          <div className="text-4xl font-medium font-bungee">
             <Link to="/">SCL</Link>
           </div>
           <div>
             <nav>
-              <ul className="flex gap-4 text-sm text-gray-200">
-                <Link to={"/"} className="hover:text-white">
-                  Home
-                </Link>
-                <Link to={"/about"} className="hover:text-white">
-                  About
-                </Link>
-                <Link to={"/contact"} className="hover:text-white">
-                  Contact
-                </Link>
-                {!isLoggedIn && (
+              <ul className="flex gap-4 text-primary font-bold font-primary">
+                {links.map((link, index) => (
+                  <Link
+                    to={link.value}
+                    key={index}
+                    className="hover:text-accent-primary transition-colors"
+                  >
+                    {link.key}
+                  </Link>
+                ))}
+
+                {/* {!isLoggedIn && (
                   <>
-                    <Link to={"/auth/login"} className="hover:text-white">
+                    <Link to={"/auth/login"} className="">
                       Login
                     </Link>
                     <Link to={"/auth/register"} className="hover:text-white">
@@ -43,9 +63,17 @@ export default function Header() {
                       Create Post
                     </Link>
                   </>
-                )}
+                )} */}
               </ul>
             </nav>
+          </div>
+          <div className="">
+            <Link
+              to={"/contact"}
+              className="bg-accent-primary hover:bg-accent-secondary px-4 py-2 rounded-md text-white font-primary font-bold"
+            >
+              Begin Journey
+            </Link>
           </div>
         </div>
       </header>

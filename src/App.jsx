@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router";
 import "./index.css";
+import "./animations.css";
 import NotFound from "./404";
 import Home from "./Pages/Home";
 import { AuthContext, AuthProvider } from "./stores/AuthContext";
@@ -15,6 +16,8 @@ import { useContext, useEffect } from "react";
 import SimpleLayout from "./Layouts/SimpleLayout";
 import GuestRoute from "./utils/GuestRoute";
 import ProtectedRoute from "./utils/ProtectedRoute";
+import ProtectedLayout from "./Layouts/ProtectedLayout";
+import Skills from "./Pages/Skills";
 
 function App() {
   return (
@@ -25,22 +28,25 @@ function App() {
             <Route element={<SimpleLayout />}>
               <Route path="/" element={<Home />} />
               <Route path="/about" element={<About />} />
+              <Route path="/skills" element={<Skills />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/test" element={<Testing />} />
             </Route>
-            {/* Admin Routes  */}
+            {/* Admin Routes 
             <Route element={<GuestRoute />}>
               <Route path="/auth/register" element={<Register />} />
               <Route path="/auth/login" element={<Login />} />
             </Route>
-            {/* Post routes */}
+            {routes}
             <Route path="/blog/:slug" element={<Blog />} />
             <Route element={<ProtectedRoute />}>
-              <Route path="/post/create" element={<CreatePost />} />
-              {/* Media Routes  */}
-              <Route path="/uploads" element={<Uploads />} />
-            </Route>
-            {/* Not Found Route */}
+              <Route element={<ProtectedLayout />}>
+                <Route path="/post/create" element={<CreatePost />} />
+                Media Routes 
+                <Route path="/uploads" element={<Uploads />} />
+              </Route>
+            </Route>}
+            {Not Found Route */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Router>

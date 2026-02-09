@@ -1,0 +1,10 @@
+@keyframes drift {
+  0% {
+    opacity: 1;
+    right: -30%;
+  }
+
+  100% {
+    right: 140%;
+  }
+}
