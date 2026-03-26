@@ -1,70 +1,68 @@
-import React, { useEffect, useState } from "react";
-import { register } from "../../services/auth";
-import useApi from "../../hooks/useApi";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import Input from "../../ui/Input";
-import Button from "../../ui/Button";
-import { Link, redirect } from "react-router";
-import { BiArrowBack } from "react-icons/bi";
-import axios from "axios";
+import ActionButton from "../../ui/ActionButton";
+import { Link, useNavigate } from "react-router";
+import AuthShell from "../../components/AuthShell";
 
 function Register() {
   const {
     register,
-    reset,
     handleSubmit,
     formState: { errors },
   } = useForm();
 
-  const api = useApi();
-
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [requestError, setRequestError] = useState(false);
+  const [requestError, setRequestError] = useState("");
+  const [requestSuccess, setRequestSuccess] = useState("");
 
   const submitRegister = async (data) => {
     setLoading(true);
-    console.log("Submit triggered");
-    const registerData = data;
+    setRequestError("");
+    setRequestSuccess("");
 
-    try {
-      const response = await api.post("/auth/register", registerData);
-      if (response) {
-        setLoading(false);
-        redirect("/auth/login");
-      }
-    } catch (e) {
-      if (e.response.data.code === 409) {
-        setRequestError("Account already exists, please try login,");
-      } else if (e.response.data.code === 403) {
-        setRequestError("Already logged in.");
-      } else {
-        setRequestError(
-          "There was an error creating your account please try again later.",
-        );
-      }
-    } finally {
+    if (!data.username || !data.email || !data.password) {
+      setRequestError("Please complete all required fields.");
       setLoading(false);
+      return;
     }
+
+    setRequestSuccess(
+      "Registration shell completed. You can continue to the login screen and enter the private admin dashboard locally.",
+    );
+    setLoading(false);
+    window.setTimeout(() => {
+      navigate("/auth/login");
+    }, 900);
   };
 
   return (
-    <>
-      <div className="h-screen w-full grid place-items-center  bg-gray-200 p-4">
-        <div className="absolute top-4 left-4 text-blue-900">
-          <Link to={"/"} className="flex gap-2 items-center">
-            <BiArrowBack /> Back to Home
+    <AuthShell
+      title="Create the admin account"
+      description="This registration view mirrors the future backend contract but currently works as a polished frontend shell. It lets us validate structure, field design, and the protected-flow handoff before wiring `/api/auth/register`."
+      footer={
+        <>
+          Already have an account?{" "}
+          <Link to="/auth/login" className="font-semibold text-accent-primary">
+            Go to login
           </Link>
+        </>
+      }
+    >
+      <form className="flex flex-col gap-5" onSubmit={handleSubmit(submitRegister)}>
+        <div className="space-y-3">
+          <h2 className="text-3xl">Register</h2>
+          <p className="text-sm leading-7 text-secondary">
+            The form already follows the intended field set and can be wired directly to
+            backend validation later.
+          </p>
         </div>
-        <form
-          className="flex flex-col w-full max-w-100 p-8  bg-white rounded-md gap-4 shadow-md"
-          onSubmit={loading ? handleSubmit() : handleSubmit(submitRegister)}
-        >
-          <h2 className="text-center text-4xl font-medium mb-4 pb-4 border-b-2 border-b-blue-700">
-            Register
-          </h2>
+        <div>
           <Input
-            type={"text"}
-            placeholder={"Enter your Username"}
+            type="text"
+            placeholder="Enter your username"
+            classes="rounded-xl border-slate-300 px-4 py-3"
             validation={{
               ...register("username", {
                 required: "Username is required",
@@ -73,9 +71,9 @@ function Register() {
                   message: "A username must be at least 3 characters long",
                 },
                 pattern: {
-                  value: /^[a-zA-Z0-9_]+$/,
+                  value: /^[a-zA-Z0-9-._]+$/,
                   message:
-                    "Usernames can only contain letters, numbers, and underscores",
+                    "Usernames can only contain letters, numbers, dashes, dots, and underscores",
                 },
                 maxLength: {
                   value: 16,
@@ -85,11 +83,14 @@ function Register() {
             }}
           />
           {errors.username && (
-            <p className="text-red-700 text-sm">{errors.username.message}</p>
+            <p className="mt-2 text-sm text-red-700">{errors.username.message}</p>
           )}
+        </div>
+        <div>
           <Input
             type="email"
-            placeholder="Enter your Email"
+            placeholder="Enter your email"
+            classes="rounded-xl border-slate-300 px-4 py-3"
             validation={{
               ...register("email", {
                 required: "Email is required",
@@ -101,11 +102,14 @@ function Register() {
             }}
           />
           {errors.email && (
-            <p className="text-red-700 text-sm">{errors.email.message}</p>
+            <p className="mt-2 text-sm text-red-700">{errors.email.message}</p>
           )}
+        </div>
+        <div>
           <Input
             type="password"
-            placeholder={"Enter your Password"}
+            placeholder="Enter your password"
+            classes="rounded-xl border-slate-300 px-4 py-3"
             validation={{
               ...register("password", {
                 required: "Please enter your password",
@@ -114,33 +118,48 @@ function Register() {
                   message: "Passwords must be atleast 8 characters long",
                 },
                 maxLength: {
-                  value: 16,
-                  message: "Passwords can not be longer than 16 characters",
+                  value: 64,
+                  message: "Passwords can not be longer than 64 characters",
                 },
                 pattern: {
                   value:
-                    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,16}$/,
+                    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,64}$/,
                   message:
-                    "Password must contain at least One lower case, One upper case and one special character and a number",
+                    "Password must contain a lower case, upper case, number, and special character",
                 },
               }),
             }}
           />
           {errors.password && (
-            <p className="text-red-700 text-sm">{errors.password.message}</p>
+            <p className="mt-2 text-sm text-red-700">{errors.password.message}</p>
           )}
+        </div>
 
-          {requestError && (
-            <p className="text-red-700 text-sm">{requestError}</p>
-          )}
-          <p className="text-sm">
-            By Signing up, you agree to our privacy policy and terms and
-            conditions.
-          </p>
-          <Button type={"submit"} children={"Register Now"} />
-        </form>
-      </div>
-    </>
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-7 text-secondary">
+          After backend integration, this page can map directly to the documented
+          guest-only register route and surface server validation messages in the same layout.
+        </div>
+
+        {requestError && (
+          <p className="text-sm text-red-700">{requestError}</p>
+        )}
+
+        {requestSuccess && (
+          <p className="text-sm text-emerald-700">{requestSuccess}</p>
+        )}
+
+        <p className="text-sm text-secondary">
+          By signing up, you agree to the privacy policy and terms and conditions.
+        </p>
+
+        <ActionButton
+          type="submit"
+          classes={loading ? "!cursor-wait !bg-blue-500 !text-gray-100" : ""}
+        >
+          {loading ? "Preparing Login..." : "Register Now"}
+        </ActionButton>
+      </form>
+    </AuthShell>
   );
 }
 

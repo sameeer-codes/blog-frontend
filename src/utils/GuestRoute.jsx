@@ -1,11 +1,16 @@
-import React, { useContext } from "react";
 import { Navigate, Outlet } from "react-router";
-import { AuthContext } from "../stores/AuthContext";
+import { useContext } from "react";
+import { AuthContext } from "../stores/auth-context";
 
 const GuestRoute = () => {
   const {
     loggedIn: [isLoggedIn],
+    isReady,
   } = useContext(AuthContext);
+
+  if (!isReady) {
+    return null;
+  }
 
   return <>{!isLoggedIn ? <Outlet /> : <Navigate to={"/"} />}</>;
 };

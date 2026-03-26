@@ -1,30 +1,21 @@
-import React, { useContext } from "react";
-import { AuthContext } from "../stores/AuthContext";
+import { useContext } from "react";
 import { Navigate, Outlet } from "react-router";
-import useApi from "../hooks/useApi";
+import { AuthContext } from "../stores/auth-context";
 
 const ProtectedRoute = () => {
   const {
-    loggedIn: [isLoggedIn, setIsLoggedIn],
-    token: [authToken, setAuthToken],
+    loggedIn: [isLoggedIn],
+    isReady,
   } = useContext(AuthContext);
 
-  const api = useApi();
-
-  async function getJwt() {
-    try {
-      const response = await api.post("/refresh-token");
-      setAuthToken(response.data.data.token);
-    } catch (e) {
-      localStorage.setItem("isLoggedIn", JSON.stringify(false));
-      setIsLoggedIn(false);
-    }
-  }
-
-  if (isLoggedIn) {
-    if (authToken === null || !authToken) {
-      getJwt();
-    }
+  if (!isReady) {
+    return (
+      <div className="grid min-h-[60vh] place-items-center bg-slate-50 px-4">
+        <div className="rounded-[28px] bg-white px-6 py-5 text-sm font-medium text-secondary shadow-soft">
+          Preparing protected workspace...
+        </div>
+      </div>
+    );
   }
 
   return <>{isLoggedIn ? <Outlet /> : <Navigate to={"/auth/login"} />}</>;

@@ -1,20 +1,17 @@
-import React, { useContext, useEffect, useState } from "react";
+import { useContext, useState } from "react";
 import { useForm } from "react-hook-form";
-import Button from "../../ui/Button";
-import { AuthContext } from "../../stores/AuthContext";
-import useApi from "../../hooks/useApi";
+import ActionButton from "../../ui/ActionButton";
+import { AuthContext } from "../../stores/auth-context";
 import Input from "../../ui/Input";
 import { Link, useNavigate } from "react-router";
-import { BiArrowBack } from "react-icons/bi";
-import axios from "axios";
+import AuthShell from "../../components/AuthShell";
 
 function Login() {
   const {
-    token: [authToken, setAuthToken],
-    loggedIn: [isLoggedIn, setIsLoggedIn],
+    authActions: { login },
   } = useContext(AuthContext);
 
-  const [requestError, setRequestError] = useState(false);
+  const [requestError, setRequestError] = useState("");
   const navigate = useNavigate();
 
   const {
@@ -25,55 +22,47 @@ function Login() {
   } = useForm();
 
   const [loading, setLoading] = useState(false);
-  const api = useApi();
 
   async function handleLogin(data) {
     setLoading(true);
-    const loginData = data;
-    setTimeout(async () => {
-      try {
-        const response = await api.post("/auth/login", loginData);
-        const { data } = response;
-        const token = data.data.jwt;
-        reset();
-        setAuthToken(token);
-        localStorage.setItem("isLoggedIn", JSON.stringify(true));
-        navigate("/");
-        setLoading(false);
-      } catch (error) {
-        if (error.response.data.code === 401) {
-          setRequestError("Please check your email or password, and try again");
-        } else if (error.response.data.code === 403) {
-          setRequestError("Already logged in.");
-          navigate("/");
-        } else {
-          setRequestError("There was an error logging in, Please try again");
-        }
+    setRequestError("");
 
-        setLoading(false);
-      } finally {
-        setLoading(false);
-      }
-    }, 2000);
+    if (!data.email || !data.password) {
+      setRequestError("Please complete both fields before continuing.");
+      setLoading(false);
+      return;
+    }
+
+    reset();
+    login(`demo-token-${Date.now()}`);
+    setLoading(false);
+    navigate("/posts/me");
   }
 
   return (
-    <>
-      <div className="h-screen w-full grid place-items-center  bg-gray-200 p-4">
-        <div className="absolute top-4 left-4 text-blue-900">
-          <Link to={"/"} className="flex gap-2 items-center">
-            <BiArrowBack /> Back to Home
+    <AuthShell
+      title="Log in to the admin workspace"
+      description="This is the frontend-only sign-in flow for now. It is designed to become the real `/api/auth/login` screen later, but currently it exists to unlock and test protected dashboard routes locally."
+      footer={
+        <>
+          Need an account?{" "}
+          <Link to="/auth/register" className="font-semibold text-accent-primary">
+            Create one here
           </Link>
+        </>
+      }
+    >
+      <form className="flex flex-col gap-5" onSubmit={handleSubmit(handleLogin)}>
+        <div className="space-y-3">
+          <h2 className="text-3xl">Log in</h2>
+          <p className="text-sm leading-7 text-secondary">
+            Use this shell to test the protected admin experience before the backend
+            authentication flow is connected.
+          </p>
         </div>
-        <form
-          className="flex flex-col w-full max-w-100 p-8  bg-white rounded-md gap-4 shadow-md"
-          onSubmit={loading ? handleSubmit(null) : handleSubmit(handleLogin)}
-        >
-          <h2 className="text-center text-4xl font-medium mb-4 pb-4 border-b-2 border-b-blue-700">
-            Log in
-          </h2>
+        <div>
           <Input
-            type={"email"}
+            type="email"
             validation={{
               ...register("email", {
                 required: "Email is required",
@@ -83,45 +72,51 @@ function Login() {
                 },
               }),
             }}
-            placeholder={"Enter your Email"}
+            placeholder="Enter your email"
+            classes="rounded-xl border-slate-300 px-4 py-3"
           />
           {errors.email && (
-            <p className="text-red-700 text-sm">{errors.email.message}</p>
+            <p className="mt-2 text-sm text-red-700">{errors.email.message}</p>
           )}
+        </div>
+        <div>
           <Input
             type="password"
             validation={{
               ...register("password", {
                 required: "Please enter your password",
-                pattern: {
-                  value:
-                    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,16}$/,
-                  message:
-                    "Password must contain at least one lower case, upper case and one special character and number",
+                minLength: {
+                  value: 8,
+                  message: "Password should be at least 8 characters long",
                 },
               }),
             }}
-            placeholder="Enter your Password"
+            placeholder="Enter your password"
+            classes="rounded-xl border-slate-300 px-4 py-3"
           />
           {errors.password && (
-            <p className="text-red-700 text-sm">{errors.password.message}</p>
+            <p className="mt-2 text-sm text-red-700">{errors.password.message}</p>
           )}
+        </div>
 
-          {requestError && (
-            <p className="text-red-700 text-sm">{requestError}</p>
-          )}
-          <div>
-            <Button children={"Forgot Password"} variant={"link"} />
-          </div>
-          <Button
-            children="Log in"
-            type="submit"
-            variant="primary"
-            classes={loading ? "!cursor-wait !bg-blue-500 !text-gray-100" : ""}
-          />
-        </form>
-      </div>
-    </>
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-7 text-secondary">
+          The current login action stores a local demo session so you can move through
+          the protected admin pages without API wiring.
+        </div>
+
+        {requestError && (
+          <p className="text-sm text-red-700">{requestError}</p>
+        )}
+
+        <ActionButton
+          type="submit"
+          variant="primary"
+          classes={loading ? "!cursor-wait !bg-blue-500 !text-gray-100" : ""}
+        >
+          {loading ? "Opening Workspace..." : "Log in"}
+        </ActionButton>
+      </form>
+    </AuthShell>
   );
 }
 
