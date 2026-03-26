@@ -4,6 +4,7 @@ import NotFound from "./404";
 import Home from "./Pages/Home";
 import { AuthProvider } from "./stores/AuthContext";
 import Blog from "./Pages/Blog";
+import About from "./Pages/About";
 import Register from "./Pages/auth/Register";
 import Login from "./Pages/auth/Login";
 import Uploads from "./Pages/Uploads";
@@ -23,6 +24,7 @@ function App() {
         <Router>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/about" element={<About />} />
             <Route path="/blog" element={<PostsIndex />} />
             <Route path="/blog/search" element={<PostsIndex />} />
             <Route path="/blog/:slug" element={<Blog />} />

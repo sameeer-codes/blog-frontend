@@ -5,6 +5,7 @@ import { AuthContext } from "../../stores/auth-context";
 import Input from "../../ui/Input";
 import { Link, useNavigate } from "react-router";
 import AuthShell from "../../components/AuthShell";
+import { getApiErrorMessage } from "../../lib/api-helpers";
 
 function Login() {
   const {
@@ -33,16 +34,27 @@ function Login() {
       return;
     }
 
-    reset();
-    login(`demo-token-${Date.now()}`);
-    setLoading(false);
-    navigate("/posts/me");
+    try {
+      await login({
+        email: data.email.trim(),
+        password: data.password,
+      });
+
+      reset();
+      navigate("/posts/me");
+    } catch (error) {
+      setRequestError(
+        getApiErrorMessage(error, "Unable to log in with those credentials."),
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <AuthShell
       title="Log in to the admin workspace"
-      description="This is the frontend-only sign-in flow for now. It is designed to become the real `/api/auth/login` screen later, but currently it exists to unlock and test protected dashboard routes locally."
+      description="Log in to open the private admin workspace and manage posts and uploads."
       footer={
         <>
           Need an account?{" "}
@@ -56,8 +68,7 @@ function Login() {
         <div className="space-y-3">
           <h2 className="text-3xl">Log in</h2>
           <p className="text-sm leading-7 text-secondary">
-            Use this shell to test the protected admin experience before the backend
-            authentication flow is connected.
+            Enter your account details to continue into the private dashboard.
           </p>
         </div>
         <div>
@@ -97,11 +108,6 @@ function Login() {
           {errors.password && (
             <p className="mt-2 text-sm text-red-700">{errors.password.message}</p>
           )}
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-7 text-secondary">
-          The current login action stores a local demo session so you can move through
-          the protected admin pages without API wiring.
         </div>
 
         {requestError && (

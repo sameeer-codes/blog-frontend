@@ -1,45 +1,153 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AuthContext } from "./auth-context";
+import { configureApiClient } from "../lib/api-client";
+import { getApiErrorMessage } from "../lib/api-helpers";
+import {
+  loginUser,
+  logoutUser,
+  refreshSessionToken,
+} from "../services/auth";
+
+const TOKEN_STORAGE_KEY = "authToken";
+
+function persistToken(token) {
+  if (!token) {
+    localStorage.removeItem(TOKEN_STORAGE_KEY);
+    return;
+  }
+
+  localStorage.setItem(TOKEN_STORAGE_KEY, token);
+}
 
 export const AuthProvider = ({ children }) => {
-  const [authToken, setAuthToken] = useState(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [authToken, setAuthToken] = useState(() => {
+    const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+    return storedToken || null;
+  });
+  const [isLoggedIn, setIsLoggedIn] = useState(
+    () => Boolean(localStorage.getItem(TOKEN_STORAGE_KEY)),
+  );
   const [isReady, setIsReady] = useState(false);
+  const [authError, setAuthError] = useState("");
 
-  useEffect(() => {
-    const localLogin = JSON.parse(localStorage.getItem("isLoggedIn") || "false");
-    const storedToken = localStorage.getItem("authToken");
-
-    setIsLoggedIn(Boolean(localLogin));
-    setAuthToken(storedToken || null);
-    setIsReady(true);
-  }, []);
-
-  function login(nextToken = "demo-auth-token") {
-    setAuthToken(nextToken);
-    setIsLoggedIn(true);
-    localStorage.setItem("isLoggedIn", JSON.stringify(true));
-    localStorage.setItem("authToken", nextToken);
-  }
-
-  function logout() {
+  const clearSession = useCallback(() => {
     setAuthToken(null);
     setIsLoggedIn(false);
-    localStorage.setItem("isLoggedIn", JSON.stringify(false));
-    localStorage.removeItem("authToken");
-  }
+    persistToken(null);
+  }, []);
+
+  const applySession = useCallback((nextToken) => {
+    setAuthToken(nextToken);
+    setIsLoggedIn(Boolean(nextToken));
+    persistToken(nextToken);
+  }, []);
+
+  const refreshSession = useCallback(async () => {
+    try {
+      const nextToken = await refreshSessionToken();
+
+      if (!nextToken) {
+        clearSession();
+        return null;
+      }
+
+      applySession(nextToken);
+      setAuthError("");
+
+      return nextToken;
+    } catch {
+      clearSession();
+      return null;
+    }
+  }, [applySession, clearSession]);
+
+  const login = useCallback(async (credentials) => {
+    const payload = await loginUser(credentials);
+    const nextToken = payload?.data?.jwt;
+
+    if (!nextToken) {
+      throw new Error("The login response did not include a JWT.");
+    }
+
+    applySession(nextToken);
+    setAuthError("");
+
+    return payload;
+  }, [applySession]);
+
+  const logout = useCallback(async () => {
+    try {
+      if (authToken) {
+        await logoutUser();
+      }
+    } catch (error) {
+      setAuthError(
+        getApiErrorMessage(error, "The session ended locally, but logout failed."),
+      );
+    } finally {
+      clearSession();
+    }
+  }, [authToken, clearSession]);
+
+  useEffect(() => {
+    configureApiClient({
+      getToken: () => authToken,
+      refreshToken: refreshSession,
+      onSessionExpired: clearSession,
+    });
+  }, [authToken, clearSession, refreshSession]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const storedToken = localStorage.getItem(TOKEN_STORAGE_KEY);
+
+    if (!storedToken) {
+      setIsReady(true);
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    async function bootstrapSession() {
+      try {
+        await refreshSession();
+      } finally {
+        if (isMounted) {
+          setIsReady(true);
+        }
+      }
+    }
+
+    bootstrapSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [refreshSession]);
 
   const value = useMemo(
     () => ({
       token: [authToken, setAuthToken],
       loggedIn: [isLoggedIn, setIsLoggedIn],
       isReady,
+      authError,
       authActions: {
         login,
         logout,
+        refreshSession,
+        clearSession,
       },
     }),
-    [authToken, isLoggedIn, isReady],
+    [
+      authError,
+      authToken,
+      clearSession,
+      isLoggedIn,
+      isReady,
+      login,
+      logout,
+      refreshSession,
+    ],
   );
 
   return (

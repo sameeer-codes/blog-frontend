@@ -2,9 +2,9 @@ import { Link } from "react-router";
 import { BiArrowBack } from "react-icons/bi";
 
 const checklist = [
-  "Private admin authentication shell before API wiring",
-  "Validation-friendly layout with space for backend error states",
-  "Clear path into the protected admin dashboard after sign-in",
+  "Private admin access",
+  "Clear validation and error states",
+  "Direct path into the dashboard after sign-in",
 ];
 
 export default function AuthShell({

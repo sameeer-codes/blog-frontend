@@ -1,56 +1,38 @@
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router";
 import Header from "../../components/Header";
 import Input from "../../ui/Input";
 import ActionButton from "../../ui/ActionButton";
-
-const posts = [
-  {
-    post_id: 3,
-    post_title: "How I structured my first custom PHP blog backend for future frontend work",
-    post_slug: "how-i-structured-my-first-custom-php-blog-backend-for-future-frontend-work",
-    post_excerpt:
-      "A long-form breakdown of routers, middleware, models, and how those decisions shape a maintainable frontend integration surface.",
-    created_at: "2026-03-24 10:00:00",
-    post_status: "published",
-  },
-  {
-    post_id: 2,
-    post_title: "Custom PHP authentication guide for JWT and refresh-token sessions",
-    post_slug: "custom-php-authentication-guide-for-jwt-and-refresh-token-sessions",
-    post_excerpt:
-      "A practical article on balancing bearer tokens, cookies, guest routes, and protected author flows in a small custom stack.",
-    created_at: "2026-03-23 18:00:00",
-    post_status: "published",
-  },
-  {
-    post_id: 1,
-    post_title: "Building a compact uploads workflow for authors without bloating the admin UI",
-    post_slug: "building-a-compact-uploads-workflow-for-authors-without-bloating-the-admin-ui",
-    post_excerpt:
-      "An interface-focused look at upload selection, metadata editing, previews, and ownership-aware media management.",
-    created_at: "2026-03-21 09:30:00",
-    post_status: "published",
-  },
-];
+import {
+  formatApiDate,
+  getApiData,
+  getApiErrorMessage,
+} from "../../lib/api-helpers";
+import { getPublicPosts, searchPublicPosts } from "../../services/posts";
 
 export default function PostsIndex() {
   const [searchValue, setSearchValue] = useState("");
   const [searchError, setSearchError] = useState("");
+  const [posts, setPosts] = useState([]);
+  const [pagination, setPagination] = useState(null);
+  const [requestError, setRequestError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [page, setPage] = useState(1);
+  const [debouncedSearchValue, setDebouncedSearchValue] = useState("");
+  const isFirstLoadRef = useRef(true);
   const location = useLocation();
-
-  const filteredPosts = useMemo(() => {
-    const query = searchValue.trim().toLowerCase();
-    if (!query) return posts;
-
-    return posts.filter((post) =>
-      [post.post_title, post.post_excerpt].some((value) =>
-        value.toLowerCase().includes(query),
-      ),
-    );
-  }, [searchValue]);
-
   const isSearchPage = location.pathname === "/blog/search";
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearchValue(searchValue.trim());
+    }, 300);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [searchValue]);
 
   function handleSearchChange(event) {
     const nextValue = event.target.value;
@@ -62,7 +44,70 @@ export default function PostsIndex() {
 
     setSearchError("");
     setSearchValue(nextValue);
+    setPage(1);
   }
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadPosts() {
+      const isInitialLoad = isFirstLoadRef.current;
+
+      if (isInitialLoad) {
+        setIsLoading(true);
+      } else {
+        setIsUpdating(true);
+      }
+      setRequestError("");
+
+      try {
+        const payload = debouncedSearchValue
+          ? await searchPublicPosts({
+              query: debouncedSearchValue,
+              page,
+              limit: 9,
+            })
+          : await getPublicPosts({
+              page,
+              limit: 9,
+            });
+
+        const data = getApiData(payload, {});
+
+        if (!isMounted) {
+          return;
+        }
+
+        setPosts(data.items || []);
+        setPagination(data.pagination || null);
+        isFirstLoadRef.current = false;
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setPosts([]);
+        setPagination(null);
+        setRequestError(
+          getApiErrorMessage(
+            error,
+            "Unable to load published posts right now. Please try again.",
+          ),
+        );
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+          setIsUpdating(false);
+        }
+      }
+    }
+
+    loadPosts();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [debouncedSearchValue, page]);
 
   return (
     <>
@@ -79,19 +124,15 @@ export default function PostsIndex() {
                   Public blog reading experience
                 </h1>
                 <p className="max-w-3xl text-base leading-8 text-secondary">
-                  This page is prepared for both `GET /api/posts` and
-                  `GET /api/posts/search`, so it already has the right surface for
-                  featured listing, simple searching, and result cards that link into
-                  article detail pages.
+                  Browse published writing, search by topic, and move into full article
+                  pages without leaving the reading flow.
                 </p>
                 <div className="rounded-[24px] border border-slate-200 bg-slate-50 px-5 py-4 text-sm leading-7 text-secondary">
-                  Until API wiring begins, the cards below use seeded content and local
-                  filtering only. That keeps the page useful for layout review without
-                  pretending the data contract is already active.
+                  Use the search field to narrow the list and find a post faster.
                 </div>
               </div>
 
-                <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
+              <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-5">
                 <label className="mb-2 block text-sm font-semibold text-slate-600">
                   Search published posts
                 </label>
@@ -112,52 +153,107 @@ export default function PostsIndex() {
                 )}
                 <p className="mt-3 text-xs leading-6 text-secondary">
                   {isSearchPage
-                    ? "This route is reserved for backend-powered search results."
-                    : "This route acts as the general published-post index."}
+                    ? "Search results update as you type."
+                    : "Browse the latest published posts."}
                 </p>
+                {isUpdating && (
+                  <p className="mt-2 text-xs leading-6 text-secondary">
+                    Updating results...
+                  </p>
+                )}
               </div>
             </div>
           </div>
 
-          <section className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {filteredPosts.map((post) => (
-              <article
-                key={post.post_id}
-                className="flex h-full flex-col rounded-[28px] border border-slate-200 bg-white p-6 shadow-soft"
-              >
-                <div className="flex flex-1 flex-col">
-                  <h2 className="text-2xl leading-snug">
-                    {post.post_title}
-                  </h2>
-                  <p className="mt-3 flex-1 text-sm leading-7 text-secondary">
-                    {post.post_excerpt}
-                  </p>
-                  <p className="mt-4 text-sm text-secondary">
-                    Published: {post.created_at}
-                  </p>
+          {requestError && (
+            <div className="mt-8 rounded-[28px] border border-red-200 bg-red-50 px-5 py-4 text-sm leading-7 text-red-700">
+              {requestError}
+            </div>
+          )}
 
-                  <div className="mt-6 flex items-center justify-between gap-3">
-                    <span className="text-xs uppercase tracking-[0.18em] text-secondary">
-                      Read More
-                    </span>
-                    <ActionButton to={`/blog/${post.post_slug}`} variant="dark">
-                      Read post
-                    </ActionButton>
-                  </div>
-                </div>
-              </article>
-            ))}
+          {isLoading && (
+            <div className="mt-8 rounded-[28px] bg-white p-8 text-center shadow-soft">
+              Loading published posts...
+            </div>
+          )}
 
-            {filteredPosts.length === 0 && (
-              <div className="rounded-[28px] bg-white p-8 text-center shadow-soft md:col-span-2 xl:col-span-3">
-                <h2 className="text-2xl">No matching posts</h2>
-                <p className="mt-3 text-sm leading-7 text-secondary">
-                  The search UI is in place and can later be connected directly to the
-                  backend search endpoint.
+          {!isLoading && (
+            <section className="mt-8">
+              <div className="mb-5 flex flex-wrap items-center justify-between gap-3 text-sm text-secondary">
+                <p>
+                  Showing {posts.length} item{posts.length === 1 ? "" : "s"}
+                  {debouncedSearchValue ? ` for "${debouncedSearchValue}"` : ""}.
                 </p>
+                {pagination && (
+                  <p>
+                    Page {pagination.page} of {pagination.total_pages}
+                  </p>
+                )}
               </div>
-            )}
-          </section>
+
+              <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {posts.map((post) => (
+                  <article
+                    key={post.post_id}
+                    className="flex h-full flex-col rounded-[28px] border border-slate-200 bg-white p-6 shadow-soft"
+                  >
+                    <div className="flex flex-1 flex-col">
+                      <h2 className="text-2xl leading-snug">{post.post_title}</h2>
+                      <p className="mt-3 flex-1 text-sm leading-7 text-secondary">
+                        {post.post_excerpt}
+                      </p>
+                      <p className="mt-4 text-sm text-secondary">
+                        Published: {formatApiDate(post.created_at)}
+                      </p>
+
+                      <div className="mt-6 flex items-center justify-between gap-3">
+                        <span className="text-xs uppercase tracking-[0.18em] text-secondary">
+                          Read More
+                        </span>
+                        <ActionButton to={`/blog/${post.post_slug}`} variant="dark">
+                          Read post
+                        </ActionButton>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+
+                {posts.length === 0 && (
+                  <div className="rounded-[28px] bg-white p-8 text-center shadow-soft md:col-span-2 xl:col-span-3">
+                    <h2 className="text-2xl">No matching posts</h2>
+                    <p className="mt-3 text-sm leading-7 text-secondary">
+                      No posts matched the current search.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {pagination && pagination.total_pages > 1 && (
+                <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+                  <ActionButton
+                    variant="secondary"
+                    disabled={!pagination.has_previous_page}
+                    onClick={() => setPage((current) => Math.max(current - 1, 1))}
+                  >
+                    Previous
+                  </ActionButton>
+                  <ActionButton
+                    variant="dark"
+                    disabled={!pagination.has_next_page}
+                    onClick={() =>
+                      setPage((current) =>
+                        pagination.total_pages
+                          ? Math.min(current + 1, pagination.total_pages)
+                          : current + 1,
+                      )
+                    }
+                  >
+                    Next
+                  </ActionButton>
+                </div>
+              )}
+            </section>
+          )}
         </section>
       </main>
     </>

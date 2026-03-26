@@ -1,29 +1,18 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import ActionButton from "../ui/ActionButton";
 import Input from "../ui/Input";
-
-const initialUploads = [
-  {
-    id: 12,
-    file_name: "api-architecture-cover.webp",
-    base_path: "/uploads/api-architecture-cover.webp",
-    mime_type: "image/webp",
-    file_size: 624000,
-    alt_text: "A dark architectural mockup for a backend article",
-    captions: "Cover image prepared for the architecture series",
-    uploaded_to: null,
-  },
-  {
-    id: 11,
-    file_name: "editor-workflow.png",
-    base_path: "/uploads/editor-workflow.png",
-    mime_type: "image/png",
-    file_size: 412000,
-    alt_text: "An editor dashboard concept with content blocks",
-    captions: "Useful for editor and admin interface previews",
-    uploaded_to: 3,
-  },
-];
+import { resolveAssetUrl } from "../lib/api-client";
+import {
+  getApiData,
+  getApiErrorMessage,
+  getApiMessage,
+} from "../lib/api-helpers";
+import {
+  deleteUploadById,
+  getUploads,
+  updateUpload,
+  uploadFiles,
+} from "../services/uploads";
 
 function formatBytes(size) {
   if (!size) return "0 KB";
@@ -31,26 +20,28 @@ function formatBytes(size) {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function isPreviewable(upload) {
-  return upload?.base_path?.startsWith("blob:");
-}
-
 function UploadPreview({ upload, large = false }) {
-  if (isPreviewable(upload)) {
+  const previewUrl = resolveAssetUrl(upload?.base_path);
+
+  if (previewUrl) {
     return (
-      <img
-        src={upload.base_path}
-        alt={upload.alt_text || upload.file_name}
-        className={`w-full object-cover object-center ${
+      <div
+        className={`grid w-full place-items-center bg-slate-50 ${
           large ? "aspect-[4/3]" : "aspect-square"
         }`}
-      />
+      >
+        <img
+          src={previewUrl}
+          alt={upload.alt_text || upload.file_name}
+          className="max-h-full max-w-full object-contain object-center"
+        />
+      </div>
     );
   }
 
   return (
     <div
-      className={`flex w-full items-end rounded-[24px] bg-[linear-gradient(135deg,_rgba(84,125,214,0.16),_rgba(100,69,191,0.08))] p-5 ${
+      className={`flex w-full items-end bg-[linear-gradient(135deg,_rgba(84,125,214,0.16),_rgba(100,69,191,0.08))] p-5 ${
         large ? "aspect-[4/3]" : "aspect-square"
       }`}
     >
@@ -67,7 +58,10 @@ function UploadPreview({ upload, large = false }) {
 }
 
 export default function Uploads() {
-  const [uploads, setUploads] = useState(initialUploads);
+  const [uploads, setUploads] = useState([]);
+  const [pagination, setPagination] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
   const [selectedUploadId, setSelectedUploadId] = useState(null);
   const [uploadError, setUploadError] = useState("");
   const [uploadSuccess, setUploadSuccess] = useState("");
@@ -82,6 +76,38 @@ export default function Uploads() {
     () => uploads.find((upload) => upload.id === selectedUploadId) || null,
     [selectedUploadId, uploads],
   );
+
+  const loadUploads = useCallback(async (page = currentPage) => {
+    setIsLoading(true);
+    setUploadError("");
+
+    try {
+      const payload = await getUploads({
+        page,
+        limit: 24,
+      });
+      const data = getApiData(payload, {});
+      const nextItems = data.items || [];
+
+      setUploads(nextItems);
+      setPagination(data.pagination || null);
+
+      return nextItems;
+    } catch (error) {
+      setUploads([]);
+      setPagination(null);
+      setUploadError(
+        getApiErrorMessage(error, "Unable to load uploads right now."),
+      );
+      return [];
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentPage]);
+
+  useEffect(() => {
+    loadUploads(currentPage);
+  }, [currentPage, loadUploads]);
 
   function openUploadModal(upload) {
     setSelectedUploadId(upload.id);
@@ -101,8 +127,9 @@ export default function Uploads() {
     setMetadataSuccess("");
   }
 
-  function handleFilesChangeEvent(event) {
+  async function handleFilesChangeEvent(event) {
     const nextFiles = Array.from(event.target.files || []);
+
     if (nextFiles.length === 0) {
       return;
     }
@@ -130,23 +157,38 @@ export default function Uploads() {
       return;
     }
 
-    const generatedUploads = nextFiles.map((file, index) => ({
-      id: Date.now() + index,
-      file_name: file.name,
-      base_path: URL.createObjectURL(file),
-      mime_type: file.type || "image/*",
-      file_size: file.size,
-      alt_text: "",
-      captions: "",
-      uploaded_to: null,
-    }));
+    try {
+      const payload = await uploadFiles(nextFiles);
+      const results = getApiData(payload, []);
+      const successCount = results.filter((item) => item.success).length;
+      const failedCount = results.length - successCount;
 
-    setUploads((current) => [...generatedUploads, ...current]);
-    openUploadModal(generatedUploads[0]);
-    setUploadSuccess(
-      `${generatedUploads.length} file${generatedUploads.length > 1 ? "s were" : " was"} added to the uploads grid.`,
-    );
-    event.target.value = "";
+      setCurrentPage(1);
+      const refreshedUploads = await loadUploads(1);
+
+      if (refreshedUploads[0]) {
+        openUploadModal(refreshedUploads[0]);
+      }
+
+      if (successCount > 0) {
+        setUploadSuccess(
+          `${successCount} file${successCount === 1 ? "" : "s"} uploaded successfully.${failedCount > 0 ? ` ${failedCount} failed.` : ""}`,
+        );
+      }
+
+      if (failedCount > 0 && successCount === 0) {
+        setUploadError(
+          results.find((item) => !item.success)?.message ||
+            "No files could be uploaded.",
+        );
+      }
+    } catch (error) {
+      setUploadError(
+        getApiErrorMessage(error, "Unable to upload files right now."),
+      );
+    } finally {
+      event.target.value = "";
+    }
   }
 
   function handleMetadataChange(event) {
@@ -157,7 +199,7 @@ export default function Uploads() {
     }));
   }
 
-  function handleMetadataSubmit(event) {
+  async function handleMetadataSubmit(event) {
     event.preventDefault();
 
     const nextAltText = metadataDraft.alt_text.trim();
@@ -175,24 +217,49 @@ export default function Uploads() {
       return;
     }
 
-    setUploads((current) =>
-      current.map((upload) =>
-        upload.id === selectedUploadId
-          ? {
-              ...upload,
-              alt_text: nextAltText,
-              captions: nextCaptions,
-            }
-          : upload,
-      ),
-    );
-    setMetadataError("");
-    setMetadataSuccess("Metadata saved locally for this upload.");
+    try {
+      const payload = await updateUpload({
+        id: selectedUploadId,
+        alt_text: nextAltText,
+        captions: nextCaptions,
+      });
+
+      setUploads((current) =>
+        current.map((upload) =>
+          upload.id === selectedUploadId
+            ? {
+                ...upload,
+                alt_text: nextAltText,
+                captions: nextCaptions,
+              }
+            : upload,
+        ),
+      );
+      setMetadataError("");
+      setMetadataSuccess(
+        getApiMessage(payload, "Metadata updated successfully."),
+      );
+    } catch (error) {
+      setMetadataSuccess("");
+      setMetadataError(
+        getApiErrorMessage(error, "Unable to update this upload right now."),
+      );
+    }
   }
 
-  function handleDeleteUpload(id) {
-    setUploads((current) => current.filter((upload) => upload.id !== id));
-    closeUploadModal();
+  async function handleDeleteUpload(id) {
+    try {
+      const payload = await deleteUploadById(id);
+      setUploads((current) => current.filter((upload) => upload.id !== id));
+      setUploadSuccess(
+        getApiMessage(payload, "Upload deleted successfully."),
+      );
+      closeUploadModal();
+    } catch (error) {
+      setMetadataError(
+        getApiErrorMessage(error, "Unable to delete this upload right now."),
+      );
+    }
   }
 
   return (
@@ -215,14 +282,10 @@ export default function Uploads() {
             <div>
               <h2 className="text-2xl">Uploads grid</h2>
               <p className="mt-2 text-sm leading-7 text-secondary">
-                Prepared for `POST /api/uploads`, `GET /api/uploads`, and `PATCH /api/uploads`.
+                Browse your media, upload new images, and update file details in one place.
               </p>
             </div>
-            <ActionButton
-              as="label"
-              htmlFor="files"
-              variant="primary"
-            >
+            <ActionButton as="label" htmlFor="files" variant="primary">
               Upload Files
             </ActionButton>
           </div>
@@ -249,32 +312,68 @@ export default function Uploads() {
             </div>
           )}
 
-          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {uploads.map((upload) => (
-              <ActionButton
-                key={upload.id}
-                variant="ghost"
-                classes="group block overflow-hidden rounded-[28px] border-slate-200 bg-white p-0 text-left shadow-soft hover:-translate-y-1 hover:border-accent-primary"
-                onClick={() => openUploadModal(upload)}
-              >
-                <UploadPreview upload={upload} />
-                <div className="space-y-3 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <h3 className="line-clamp-2 text-base leading-7">
+          {isLoading && (
+            <div className="mt-8 rounded-[28px] border border-slate-200 bg-slate-50 px-5 py-8 text-center text-secondary">
+              Loading uploads...
+            </div>
+          )}
+
+          {!isLoading && (
+            <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {uploads.map((upload) => (
+                <ActionButton
+                  key={upload.id}
+                  variant="ghost"
+                  classes="group !flex !w-full !flex-col !items-stretch overflow-hidden rounded-lg border-slate-200 bg-white p-0 text-left shadow-soft hover:-translate-y-1 hover:border-accent-primary"
+                  onClick={() => openUploadModal(upload)}
+                >
+                  <UploadPreview upload={upload} />
+                  <div className="space-y-1 border-t border-slate-100 px-3 py-3">
+                    <h3 className="line-clamp-1 text-sm leading-6 text-slate-900">
                       {upload.file_name}
                     </h3>
-                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-secondary">
-                      #{upload.id}
-                    </span>
+                    <div className="text-xs leading-5 text-secondary">
+                      <p>{upload.mime_type}</p>
+                      <p>{formatBytes(upload.file_size)}</p>
+                    </div>
                   </div>
-                  <div className="text-sm text-secondary">
-                    <p>{formatBytes(upload.file_size)}</p>
-                    <p>{upload.mime_type}</p>
-                  </div>
+                </ActionButton>
+              ))}
+
+              {uploads.length === 0 && (
+                <div className="rounded-[28px] border border-slate-200 bg-slate-50 px-5 py-8 text-center text-secondary sm:col-span-2 lg:col-span-3 xl:col-span-4">
+                  No uploads are available yet.
                 </div>
+              )}
+            </div>
+          )}
+
+          {pagination && pagination.total_pages > 1 && (
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <ActionButton
+                variant="secondary"
+                disabled={!pagination.has_previous_page}
+                onClick={() =>
+                  setCurrentPage((current) => Math.max(current - 1, 1))
+                }
+              >
+                Previous
               </ActionButton>
-            ))}
-          </div>
+              <ActionButton
+                variant="dark"
+                disabled={!pagination.has_next_page}
+                onClick={() =>
+                  setCurrentPage((current) =>
+                    pagination.total_pages
+                      ? Math.min(current + 1, pagination.total_pages)
+                      : current + 1,
+                  )
+                }
+              >
+                Next
+              </ActionButton>
+            </div>
+          )}
         </section>
 
         {selectedUpload && (
@@ -298,11 +397,11 @@ export default function Uploads() {
 
               <div className="grid gap-8 p-6 lg:grid-cols-[1.05fr_0.95fr]">
                 <div className="space-y-5">
-                  <div className="overflow-hidden rounded-[28px] border border-slate-200 bg-slate-50">
+                  <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
                     <UploadPreview upload={selectedUpload} large />
                   </div>
 
-                  <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-5 text-sm leading-7 text-secondary">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-5 text-sm leading-7 text-secondary">
                     <p>ID: {selectedUpload.id}</p>
                     <p>File Size: {formatBytes(selectedUpload.file_size)}</p>
                     <p>MIME Type: {selectedUpload.mime_type}</p>
@@ -314,8 +413,7 @@ export default function Uploads() {
                   <div>
                     <h3 className="text-2xl">Edit metadata</h3>
                     <p className="mt-2 text-sm leading-7 text-secondary">
-                      Update the content associated with this upload. This modal is prepared
-                      for the metadata patch flow once the backend is connected.
+                      Update the text and notes associated with this upload.
                     </p>
                   </div>
 

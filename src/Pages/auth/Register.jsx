@@ -4,6 +4,8 @@ import Input from "../../ui/Input";
 import ActionButton from "../../ui/ActionButton";
 import { Link, useNavigate } from "react-router";
 import AuthShell from "../../components/AuthShell";
+import { getApiErrorMessage, getApiMessage } from "../../lib/api-helpers";
+import { registerUser } from "../../services/auth";
 
 function Register() {
   const {
@@ -28,19 +30,36 @@ function Register() {
       return;
     }
 
-    setRequestSuccess(
-      "Registration shell completed. You can continue to the login screen and enter the private admin dashboard locally.",
-    );
-    setLoading(false);
-    window.setTimeout(() => {
-      navigate("/auth/login");
-    }, 900);
+    try {
+      const payload = await registerUser({
+        username: data.username.trim(),
+        email: data.email.trim(),
+        password: data.password,
+      });
+
+      setRequestSuccess(
+        getApiMessage(
+          payload,
+          "Registration completed successfully. You can continue to login.",
+        ),
+      );
+
+      window.setTimeout(() => {
+        navigate("/auth/login");
+      }, 900);
+    } catch (error) {
+      setRequestError(
+        getApiErrorMessage(error, "Unable to create the account right now."),
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <AuthShell
       title="Create the admin account"
-      description="This registration view mirrors the future backend contract but currently works as a polished frontend shell. It lets us validate structure, field design, and the protected-flow handoff before wiring `/api/auth/register`."
+      description="Create the admin account used to manage posts, uploads, and the private dashboard."
       footer={
         <>
           Already have an account?{" "}
@@ -54,8 +73,7 @@ function Register() {
         <div className="space-y-3">
           <h2 className="text-3xl">Register</h2>
           <p className="text-sm leading-7 text-secondary">
-            The form already follows the intended field set and can be wired directly to
-            backend validation later.
+            Set up your admin account details to access the private workspace.
           </p>
         </div>
         <div>
@@ -133,11 +151,6 @@ function Register() {
           {errors.password && (
             <p className="mt-2 text-sm text-red-700">{errors.password.message}</p>
           )}
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-7 text-secondary">
-          After backend integration, this page can map directly to the documented
-          guest-only register route and surface server validation messages in the same layout.
         </div>
 
         {requestError && (

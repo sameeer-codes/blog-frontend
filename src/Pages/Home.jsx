@@ -1,26 +1,17 @@
-import { Link } from "react-router";
 import Header from "../components/Header";
 import ActionButton from "../ui/ActionButton";
 
-const publicFlows = [
-  {
-    title: "Browse published posts",
-    description:
-      "A public post index with search, featured content, and detail pages for published writing.",
-    link: "/blog",
-  },
-  {
-    title: "Read individual articles",
-    description:
-      "Single post layouts designed for post titles, excerpts, featured imagery, and full article bodies.",
-    link: "/blog/custom-php-blog-architecture",
-  },
+const principles = [
+  "Public readers and private admin tools share one frontend codebase.",
+  "Reusable forms and upload pickers reduce duplication across create and edit flows.",
+  "Routing, auth, and API access are split into clear layers for maintainability.",
 ];
 
-const authorFlows = [
-  "Private admin login and signup flow for site management only",
-  "Create, edit, and review blog posts across draft, published, and archived states",
-  "Media uploads workspace for images, metadata edits, and file management",
+const techniques = [
+  "React Router for route composition and protection",
+  "React Context for session state and auth actions",
+  "Axios interceptors for token injection and refresh handling",
+  "react-hook-form for structured validation and submission flow",
 ];
 
 function Home() {
@@ -35,58 +26,57 @@ function Home() {
             </p>
             <div className="space-y-5">
               <h1 className="max-w-3xl text-4xl leading-tight md:text-6xl">
-                Sameer&apos;s Code Lab is shaping into a complete blog and author dashboard.
+                A practice project for building a modern blog frontend with a private admin workflow.
               </h1>
               <p className="max-w-2xl text-lg leading-8 text-secondary">
-                The current frontend now has the right page surface for public reading,
-                private admin access, post management, and media administration. API wiring can
-                be layered in next without restructuring the app.
+                This project focuses on real frontend architecture: public content pages,
+                protected admin routes, API-driven forms, uploads management, and session-based
+                authentication.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-4">
-              <ActionButton to="/blog" variant="primary" classes="self-start">
-                Explore Blog Pages
-              </ActionButton>
               <ActionButton
-                to="/posts/me"
+                to="/about"
                 variant="secondary"
                 classes="px-6 py-4"
               >
-                Review Author Screens
+                About This Project
+              </ActionButton>
+              <ActionButton
+                to="/posts/me"
+                variant="dark"
+                classes="px-6 py-4"
+              >
+                Open Admin Workspace
               </ActionButton>
             </div>
             <div className="rounded-[24px] border border-slate-200 bg-white p-5 text-sm leading-7 text-secondary shadow-soft">
-              The current goal is clarity over live data. Each page is now shaped to match
-              the backend contract, but the interactions stay lightweight and instructional
-              until API validation and payload mapping are added.
+              It is intentionally structured like a small production-style app so the code
+              can be reviewed for routing, state, API integration, and UI composition skills.
             </div>
           </div>
 
           <div className="grid flex-1 gap-6">
             <div className="rounded-[28px] border border-white/80 bg-white/80 p-6 shadow-soft backdrop-blur">
-              <h2 className="mb-4 text-2xl">Public reading flows</h2>
+              <h2 className="mb-4 text-2xl">Project Principles</h2>
               <div className="space-y-4">
-                {publicFlows.map((flow) => (
-                  <Link
-                    key={flow.title}
-                    to={flow.link}
-                    className="block rounded-2xl border border-slate-200 p-5 hover:border-accent-primary hover:bg-slate-50"
+                {principles.map((item) => (
+                  <div
+                    key={item}
+                    className="rounded-2xl border border-slate-200 p-5"
                   >
-                    <h3 className="text-lg">{flow.title}</h3>
-                    <p className="mt-2 text-sm leading-7 text-secondary">
-                      {flow.description}
-                    </p>
-                  </Link>
+                    <p className="text-sm leading-7 text-secondary">{item}</p>
+                  </div>
                 ))}
               </div>
             </div>
 
             <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-soft">
-              <h2 className="mb-4 text-2xl">Admin flows</h2>
+              <h2 className="mb-4 text-2xl">Methods And Tools</h2>
               <ul className="space-y-3 text-sm leading-7 text-secondary">
-                {authorFlows.map((flow) => (
-                  <li key={flow} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                    {flow}
+                {techniques.map((item) => (
+                  <li key={item} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    {item}
                   </li>
                 ))}
               </ul>

@@ -1,24 +1,75 @@
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import Header from "../components/Header";
-
-const relatedPosts = [
-  {
-    title: "Handling refresh tokens in a custom PHP app",
-    slug: "handling-refresh-tokens-in-a-custom-php-app",
-  },
-  {
-    title: "Media uploads with ownership checks",
-    slug: "media-uploads-with-ownership-checks",
-  },
-  {
-    title: "Designing a small but strict post editor",
-    slug: "designing-a-small-but-strict-post-editor",
-  },
-];
+import { resolveAssetUrl } from "../lib/api-client";
+import {
+  formatApiDate,
+  getApiData,
+  getApiErrorMessage,
+} from "../lib/api-helpers";
+import { getPublicPostBySlug, getPublicPosts } from "../services/posts";
 
 export default function Blog() {
   const { slug } = useParams();
-  const readableSlug = slug?.split("-").join(" ") || "blog post";
+  const [post, setPost] = useState(null);
+  const [relatedPosts, setRelatedPosts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [requestError, setRequestError] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadPost() {
+      setIsLoading(true);
+      setRequestError("");
+
+      try {
+        const [postPayload, relatedPayload] = await Promise.all([
+          getPublicPostBySlug(slug),
+          getPublicPosts({ page: 1, limit: 3 }),
+        ]);
+
+        if (!isMounted) {
+          return;
+        }
+
+        const currentPost = getApiData(postPayload, null);
+        const relatedData = getApiData(relatedPayload, {});
+
+        setPost(currentPost);
+        setRelatedPosts(
+          (relatedData.items || []).filter(
+            (item) => item.post_slug !== currentPost?.post_slug,
+          ),
+        );
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setPost(null);
+        setRelatedPosts([]);
+        setRequestError(
+          getApiErrorMessage(
+            error,
+            "Unable to load this article right now. Please try again.",
+          ),
+        );
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadPost();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [slug]);
+
+  const featuredImageUrl = resolveAssetUrl(post?.post_featured_image);
 
   return (
     <>
@@ -31,58 +82,68 @@ export default function Blog() {
                 Blog
               </Link>
               <span>/</span>
-              <span className="capitalize">{readableSlug}</span>
+              <span className="capitalize">{post?.post_title || "Article"}</span>
             </div>
 
             <div className="space-y-6">
               <p className="inline-flex rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-secondary">
-                Single Post Template
+                Published Article
               </p>
-              <h1 className="max-w-3xl text-4xl leading-tight capitalize md:text-5xl">
-                {readableSlug}
+              <h1 className="max-w-3xl text-4xl leading-tight md:text-5xl">
+                {post?.post_title || "Article"}
               </h1>
               <p className="max-w-3xl text-lg leading-8 text-secondary">
-                This page is the public article detail shell for the eventual
-                `GET /api/posts/single` integration. It already has space for title,
-                excerpt, featured media, metadata, and full article content.
+                {post?.post_excerpt ||
+                  "Read the full article below."}
               </p>
             </div>
 
-            <div className="my-10 rounded-[28px] border border-slate-200 bg-slate-50 p-8">
-              <div className="flex flex-wrap items-center gap-4 text-sm text-secondary">
-                <span>Published March 25, 2026</span>
-                <span>Author: Sameer</span>
-                <span>Status: Published</span>
+            {requestError && (
+              <div className="mt-8 rounded-[24px] border border-red-200 bg-red-50 px-5 py-4 text-sm leading-7 text-red-700">
+                {requestError}
               </div>
-              <p className="mt-6 max-w-2xl text-base leading-8 text-slate-700">
-                Featured-image and excerpt-aware storytelling would render here.
-                For now, this is a static content scaffold that mirrors the backend
-                post shape and leaves room for real content binding once the API work starts.
-              </p>
-            </div>
+            )}
 
-            <div className="mb-10 rounded-[24px] border border-blue-200 bg-blue-50 px-5 py-4 text-sm leading-7 text-slate-700">
-              This article page is intentionally instructional right now: it shows where
-              post metadata, featured media, body content, and related links will land once
-              the single-post endpoint is wired.
-            </div>
-
-            <article className="max-w-none">
-              <div className="space-y-6 text-base leading-8 text-slate-700">
-                <p>
-                  The single post page needs to present long-form writing clearly,
-                  without crowding the interface. The current scaffold favors strong
-                  hierarchy, wide line spacing, and a simple reading rhythm so the real
-                  API data can drop in later with minimal churn.
-                </p>
-                <p>
-                  It also gives the frontend a defined home for every field in the API:
-                  title, slug, content, excerpt, featured image reference, author, and
-                  timestamps. When the backend is ready, these placeholders can be replaced
-                  with fetched data instead of requiring structural redesign.
-                </p>
+            {isLoading && (
+              <div className="my-10 rounded-[28px] border border-slate-200 bg-slate-50 p-8 text-center text-secondary">
+                Loading article...
               </div>
-            </article>
+            )}
+
+            {!isLoading && post && (
+              <>
+                {featuredImageUrl && (
+                  <div className="mt-10 overflow-hidden rounded-[28px] border border-slate-200 bg-slate-50">
+                    <img
+                      src={featuredImageUrl}
+                      alt={post.post_title}
+                      className="aspect-[16/8] w-full object-cover object-center"
+                    />
+                  </div>
+                )}
+
+                <div className="my-10 rounded-[28px] border border-slate-200 bg-slate-50 p-8">
+                  <div className="flex flex-wrap items-center gap-4 text-sm text-secondary">
+                    <span>Published {formatApiDate(post.created_at)}</span>
+                    <span>Status: {post.post_status}</span>
+                  </div>
+                  <p className="mt-6 max-w-2xl text-base leading-8 text-slate-700">
+                    A clean reading layout keeps the focus on the article itself.
+                  </p>
+                </div>
+
+                <article className="max-w-none">
+                  <div className="space-y-6 text-base leading-8 text-slate-700">
+                    {post.post_content
+                      .split(/\n{2,}/)
+                      .filter(Boolean)
+                      .map((paragraph, index) => (
+                        <p key={`${post.post_id}-${index}`}>{paragraph}</p>
+                      ))}
+                  </div>
+                </article>
+              </>
+            )}
           </div>
 
           <section className="mt-10">
@@ -93,18 +154,24 @@ export default function Blog() {
               </Link>
             </div>
             <div className="grid gap-4 md:grid-cols-3">
-              {relatedPosts.map((post) => (
+              {relatedPosts.map((relatedPost) => (
                 <Link
-                  key={post.slug}
-                  to={`/blog/${post.slug}`}
+                  key={relatedPost.post_id}
+                  to={`/blog/${relatedPost.post_slug}`}
                   className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-soft hover:border-accent-primary"
                 >
-                  <h3 className="text-lg capitalize">{post.title}</h3>
+                  <h3 className="text-lg capitalize">{relatedPost.post_title}</h3>
                   <p className="mt-2 text-sm leading-7 text-secondary">
-                    Placeholder related post card for the eventual published-post feed.
+                    {relatedPost.post_excerpt}
                   </p>
                 </Link>
               ))}
+
+              {!isLoading && relatedPosts.length === 0 && (
+                <div className="rounded-[24px] border border-slate-200 bg-white p-5 text-sm leading-7 text-secondary shadow-soft md:col-span-3">
+                  No related posts were returned for this view.
+                </div>
+              )}
             </div>
           </section>
         </section>

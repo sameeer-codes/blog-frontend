@@ -1,15 +1,88 @@
+import { useEffect, useState } from "react";
 import { useParams } from "react-router";
 import PostForm from "../../components/PostForm";
 import ActionButton from "../../ui/ActionButton";
-
-const seededBody =
-  "Editing a post usually has different stakes than creating one, because authors expect clear state visibility for drafts, published pieces, and archived entries. This scaffold uses the same form component as the create flow, but the surrounding context is tuned for reviewing ownership, post status, and the kind of precise field updates the backend patch endpoint will eventually accept. Keeping these two screens aligned now reduces churn later, especially when handling partial updates, featured image changes, and slug regeneration triggered by title edits.";
+import {
+  getApiData,
+  getApiErrorMessage,
+  getApiMessage,
+} from "../../lib/api-helpers";
+import { getMyPostById, updatePost } from "../../services/posts";
 
 export default function EditPost() {
   const { postId } = useParams();
+  const [postData, setPostData] = useState(null);
+  const [requestError, setRequestError] = useState("");
+  const [requestSuccess, setRequestSuccess] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleEdit(values) {
-    console.log("Edit post draft", values);
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadPost() {
+      setIsLoading(true);
+      setRequestError("");
+
+      try {
+        const payload = await getMyPostById(postId);
+        const data = getApiData(payload, null);
+
+        if (!isMounted) {
+          return;
+        }
+
+        setPostData(data);
+      } catch (error) {
+        if (!isMounted) {
+          return;
+        }
+
+        setPostData(null);
+        setRequestError(
+          getApiErrorMessage(error, "Unable to load this post for editing."),
+        );
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
+
+    loadPost();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [postId]);
+
+  async function handleEdit(values) {
+    setIsSubmitting(true);
+    setRequestError("");
+    setRequestSuccess("");
+
+    try {
+      const payload = await updatePost({
+        post_id: Number(postId),
+        post_title: values.postTitle || undefined,
+        post_body: values.postBody || undefined,
+        post_excerpt: values.postExcerpt || undefined,
+        featured_image: values.featuredImage
+          ? Number(values.featuredImage)
+          : null,
+        post_status: values.postStatus || undefined,
+      });
+
+      setRequestSuccess(
+        getApiMessage(payload, "Post updated successfully."),
+      );
+    } catch (error) {
+      setRequestError(
+        getApiErrorMessage(error, "Unable to update this post right now."),
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -22,7 +95,11 @@ export default function EditPost() {
             </p>
             <h1 className="mt-2 text-3xl">Edit author-owned post</h1>
           </div>
-          <ActionButton to="/posts/me" variant="secondary" classes="!px-4 !py-2 !font-medium">
+          <ActionButton
+            to="/posts/me"
+            variant="secondary"
+            classes="!px-4 !py-2 !font-medium"
+          >
             Back to my posts
           </ActionButton>
         </div>
@@ -31,14 +108,17 @@ export default function EditPost() {
           formSubmit={handleEdit}
           submitLabel="Save Post Changes"
           heading="Edit post details"
-          description="This screen is prepared for `GET /api/posts/me/single` and `PATCH /api/posts`, including ownership-sensitive editing of title, body, excerpt, featured image, and status."
+          description="Update the post title, body, excerpt, featured image, and publish status from one place."
+          requestError={requestError}
+          requestSuccess={requestSuccess}
+          isSubmitting={isSubmitting}
+          isLoading={isLoading}
           formdata={{
-            postTitle: "Updated custom PHP blog architecture for better maintainability across routes and content workflows",
-            postBody: seededBody,
-            postExcerpt:
-              "An edit-state version of the post form, intended for author-owned content and eventual partial update flows.",
-            featuredImage: "11",
-            postStatus: "published",
+            postTitle: postData?.post_title || "",
+            postBody: postData?.post_content || "",
+            postExcerpt: postData?.post_excerpt || "",
+            featuredImage: postData?.post_featured_image || "",
+            postStatus: postData?.post_status || "draft",
           }}
         />
       </section>
