@@ -17,11 +17,22 @@ export default function Header() {
     setIsMenuOpen(false);
   }, [location.pathname]);
 
+  useEffect(() => {
+    document.body.style.overflow = isMenuOpen ? "hidden" : "";
+
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMenuOpen]);
+
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex w-full max-w-[1280px] flex-wrap items-center justify-between gap-4 px-4 py-4">
         <div className="flex items-center gap-3">
-          <Link to="/" className="font-primary text-3xl font-bold tracking-tight">
+          <Link
+            to="/"
+            className="font-primary text-3xl font-bold tracking-tight"
+          >
             SCL
           </Link>
           <p className="hidden text-sm text-secondary md:block">
@@ -29,6 +40,7 @@ export default function Header() {
           </p>
         </div>
 
+        {/* Desktop public navigation stays inline in the header from md and up. */}
         <nav className="hidden md:block">
           <ul className="flex items-center gap-2">
             {publicLinks.map((link) => (
@@ -47,10 +59,29 @@ export default function Header() {
                 </NavLink>
               </li>
             ))}
+
+            {isLoggedIn &&
+              privateLinks.map((link) => (
+                <li key={link.key}>
+                  <NavLink
+                    to={link.value}
+                    className={({ isActive }) =>
+                      `rounded-full px-4 py-2 text-sm font-medium transition-all ${
+                        isActive
+                          ? "bg-slate-900 text-white"
+                          : "text-primary hover:bg-slate-100"
+                      }`
+                    }
+                  >
+                    {link.key}
+                  </NavLink>
+                </li>
+              ))}
           </ul>
         </nav>
 
         <div className="flex items-center gap-3">
+          {/* Mobile uses the off-canvas trigger only; desktop auth actions stay hidden here. */}
           <ActionButton
             variant="ghost"
             classes="md:hidden !rounded-2xl !px-4 !py-2"
@@ -59,6 +90,7 @@ export default function Header() {
             {isMenuOpen ? "Close" : "Menu"}
           </ActionButton>
 
+          {/* Guest actions are desktop-only and move into the drawer on mobile. */}
           {!isLoggedIn && (
             <>
               <ActionButton
@@ -78,10 +110,11 @@ export default function Header() {
             </>
           )}
 
+          {/* Authenticated desktop action stays in the header, but mobile gets it inside the drawer. */}
           {isLoggedIn && (
             <ActionButton
               variant="ghost"
-              classes="hidden md:inline-flex !px-4 !py-2"
+              classes="!hidden md:!flex !px-4 !py-2"
               onClick={logout}
             >
               Logout
@@ -92,11 +125,8 @@ export default function Header() {
 
       {isMenuOpen && (
         <div className="md:hidden">
-          <div
-            className="fixed inset-0 z-30 bg-slate-950/35"
-            onClick={() => setIsMenuOpen(false)}
-          />
-          <div className="fixed inset-y-0 right-0 z-40 flex w-full max-w-sm flex-col border-l border-slate-200 bg-white shadow-2xl">
+          {/* Mobile drawer contains both public navigation and auth/admin actions. */}
+          <div className="fixed inset-y-0 right-0 z-40 flex w-full max-w-sm flex-col border-l border-slate-200 bg-white shadow-2xl h-[100vh]">
             <div className="flex items-center justify-between border-b border-slate-200 px-5 py-5">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary">
@@ -113,12 +143,13 @@ export default function Header() {
               </ActionButton>
             </div>
 
-            <div className="flex-1 space-y-8 overflow-y-auto px-5 py-6">
+            <div className="flex-1 space-y-2 overflow-y-auto px-5 py-6">
+              {/* Public links are always shown in the drawer. */}
               <section className="space-y-3">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary">
+                {/* <p className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary">
                   Public
-                </p>
-                <div className="space-y-2">
+                </p> */}
+                <div className="space-y-3">
                   {publicLinks.map((link) => (
                     <NavLink
                       key={link.key}
@@ -137,12 +168,13 @@ export default function Header() {
                 </div>
               </section>
 
+              {/* Private links are only rendered for an authenticated admin session. */}
               {isLoggedIn && (
                 <section className="space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary">
+                  {/* <p className="text-xs font-semibold uppercase tracking-[0.18em] text-secondary">
                     Admin
-                  </p>
-                  <div className="space-y-2">
+                  </p> */}
+                  <div className="space-y-3">
                     {privateLinks.map((link) => (
                       <NavLink
                         key={link.key}
@@ -172,13 +204,22 @@ export default function Header() {
               )}
             </div>
 
+            {/* Drawer footer swaps between guest actions and authenticated actions. */}
             <div className="border-t border-slate-200 px-5 py-5">
               {!isLoggedIn && (
                 <div className="grid gap-3">
-                  <ActionButton to="/auth/login" variant="primary" classes="!rounded-2xl">
+                  <ActionButton
+                    to="/auth/login"
+                    variant="primary"
+                    classes="!rounded-2xl"
+                  >
                     Login
                   </ActionButton>
-                  <ActionButton to="/auth/register" variant="secondary" classes="!rounded-2xl">
+                  <ActionButton
+                    to="/auth/register"
+                    variant="secondary"
+                    classes="!rounded-2xl"
+                  >
                     Register
                   </ActionButton>
                 </div>
