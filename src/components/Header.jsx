@@ -96,14 +96,14 @@ export default function Header() {
               <ActionButton
                 to="/auth/register"
                 variant="secondary"
-                classes="hidden md:inline-flex !px-4 !py-2"
+                classes="!hidden md:!inline-flex !px-4 !py-2"
               >
                 Register
               </ActionButton>
               <ActionButton
                 to="/auth/login"
                 variant="primary"
-                classes="hidden md:inline-flex !px-5 !py-2"
+                classes="!hidden md:!inline-flex !px-5 !py-2"
               >
                 Login
               </ActionButton>
