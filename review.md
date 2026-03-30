@@ -352,3 +352,6 @@ The strongest areas to discuss in an interview are:
 - route protection
 - payload normalization
 - frontend scaling tradeoffs
+
+
+--- cc --
