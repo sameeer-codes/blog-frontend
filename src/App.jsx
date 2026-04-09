@@ -16,6 +16,12 @@ import EditPost from "./Pages/posts/EditPost";
 import MyPosts from "./Pages/posts/MyPosts";
 import PostsIndex from "./Pages/posts/PostsIndex";
 import ErrorBoundary from "./components/ErrorBoundary";
+import AdminDashboard from "./Pages/admin/AdminDashboard";
+import AdminUsers from "./Pages/admin/AdminUsers";
+import AdminPosts from "./Pages/admin/AdminPosts";
+import AdminUploads from "./Pages/admin/AdminUploads";
+import AdminUserDetails from "./Pages/admin/AdminUserDetails";
+import AdminPostEdit from "./Pages/admin/AdminPostEdit";
 
 function App() {
   return (
@@ -32,6 +38,15 @@ function App() {
             <Route element={<GuestRoute />}>
               <Route path="/auth/register" element={<Register />} />
               <Route path="/auth/login" element={<Login />} />
+            </Route>
+
+            <Route element={<ProtectedLayout />}>
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/users/:userId" element={<AdminUserDetails />} />
+              <Route path="/admin/posts" element={<AdminPosts />} />
+              <Route path="/admin/posts/:postId/edit" element={<AdminPostEdit />} />
+              <Route path="/admin/uploads" element={<AdminUploads />} />
             </Route>
 
             <Route element={<ProtectedRoute />}>
