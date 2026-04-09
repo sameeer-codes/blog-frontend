@@ -40,17 +40,14 @@ function App() {
               <Route path="/auth/login" element={<Login />} />
             </Route>
 
-            <Route element={<ProtectedLayout />}>
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/users" element={<AdminUsers />} />
-              <Route path="/admin/users/:userId" element={<AdminUserDetails />} />
-              <Route path="/admin/posts" element={<AdminPosts />} />
-              <Route path="/admin/posts/:postId/edit" element={<AdminPostEdit />} />
-              <Route path="/admin/uploads" element={<AdminUploads />} />
-            </Route>
-
             <Route element={<ProtectedRoute />}>
               <Route element={<ProtectedLayout />}>
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/admin/users" element={<AdminUsers />} />
+                <Route path="/admin/users/:userId" element={<AdminUserDetails />} />
+                <Route path="/admin/posts" element={<AdminPosts />} />
+                <Route path="/admin/posts/:postId/edit" element={<AdminPostEdit />} />
+                <Route path="/admin/uploads" element={<AdminUploads />} />
                 <Route path="/post/create" element={<CreatePost />} />
                 <Route path="/post/edit/:postId" element={<EditPost />} />
                 <Route path="/posts/me" element={<MyPosts />} />
