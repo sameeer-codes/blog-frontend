@@ -69,7 +69,9 @@ export default function Blog() {
     };
   }, [slug]);
 
-  const featuredImageUrl = resolveAssetUrl(post?.post_featured_image);
+  const featuredImageUrl = resolveAssetUrl(
+    post?.featured_image_path || post?.post_featured_image,
+  );
 
   return (
     <>
@@ -117,7 +119,7 @@ export default function Blog() {
                     <img
                       src={featuredImageUrl}
                       alt={post.post_title}
-                      className="aspect-[16/8] w-full object-cover object-center"
+                      className="aspect-[16/8] w-full object-contain object-center"
                     />
                   </div>
                 )}

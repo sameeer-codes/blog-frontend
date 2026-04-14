@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
 import AdminNotice from "../../components/admin/AdminNotice";
 import AdminPageHeader from "../../components/admin/AdminPageHeader";
@@ -35,50 +35,34 @@ export default function AdminPosts() {
   const [isUpdatingId, setIsUpdatingId] = useState(null);
   const [isDeletingId, setIsDeletingId] = useState(null);
 
-  useEffect(() => {
-    let isMounted = true;
+  const loadPosts = useCallback(async () => {
+    setIsLoading(true);
+    setRequestError("");
 
-    async function loadPosts() {
-      setIsLoading(true);
-      setRequestError("");
+    try {
+      const payload = await getAdminPosts({
+        status: statusFilter,
+        page,
+        limit: 20,
+      });
+      const data = getApiData(payload, {});
 
-      try {
-        const payload = await getAdminPosts({
-          status: statusFilter,
-          page,
-          limit: 20,
-        });
-        const data = getApiData(payload, {});
-
-        if (!isMounted) {
-          return;
-        }
-
-        setPosts(data.items || []);
-        setPagination(data.pagination || null);
-      } catch (error) {
-        if (!isMounted) {
-          return;
-        }
-
-        setPosts([]);
-        setPagination(null);
-        setRequestError(
-          getApiErrorMessage(error, "Unable to load admin posts right now."),
-        );
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
+      setPosts(data.items || []);
+      setPagination(data.pagination || null);
+    } catch (error) {
+      setPosts([]);
+      setPagination(null);
+      setRequestError(
+        getApiErrorMessage(error, "Unable to load admin posts right now."),
+      );
+    } finally {
+      setIsLoading(false);
     }
-
-    loadPosts();
-
-    return () => {
-      isMounted = false;
-    };
   }, [page, statusFilter]);
+
+  useEffect(() => {
+    loadPosts();
+  }, [loadPosts]);
 
   async function handleStatusChange(postId, nextStatus) {
     setIsUpdatingId(postId);
@@ -91,13 +75,7 @@ export default function AdminPosts() {
         post_status: nextStatus,
       });
 
-      setPosts((current) =>
-        current.map((post) =>
-          post.post_id === postId
-            ? { ...post, post_status: nextStatus }
-            : post,
-        ),
-      );
+      await loadPosts();
       setRequestSuccess(
         getApiMessage(payload, "Post status updated successfully."),
       );
@@ -125,8 +103,7 @@ export default function AdminPosts() {
 
     try {
       const payload = await deleteAdminPost(postId);
-
-      setPosts((current) => current.filter((post) => post.post_id !== postId));
+      await loadPosts();
       setRequestSuccess(getApiMessage(payload, "Post deleted successfully."));
     } catch (error) {
       setRequestError(

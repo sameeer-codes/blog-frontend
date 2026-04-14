@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router";
 import AdminNotice from "../../components/admin/AdminNotice";
 import AdminPageHeader from "../../components/admin/AdminPageHeader";
 import PostForm from "../../components/PostForm";
-import { getApiMessage, getApiErrorMessage } from "../../lib/api-helpers";
+import { getApiData, getApiMessage, getApiErrorMessage } from "../../lib/api-helpers";
 import { getAdminPosts, updateAdminPost } from "../../services/admin";
 
 export default function AdminPostEdit() {
@@ -29,7 +29,7 @@ export default function AdminPostEdit() {
           limit: 100,
         });
 
-        const post = payload?.data?.items?.find(
+        const post = getApiData(payload, {})?.items?.find(
           (item) => String(item.post_id) === String(postId),
         );
 

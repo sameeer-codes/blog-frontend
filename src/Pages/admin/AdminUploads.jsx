@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import AdminNotice from "../../components/admin/AdminNotice";
 import AdminPageHeader from "../../components/admin/AdminPageHeader";
 import AdminSelect from "../../components/admin/AdminSelect";
@@ -33,49 +33,33 @@ export default function AdminUploads() {
   const [editDrafts, setEditDrafts] = useState({});
   const [isSavingId, setIsSavingId] = useState(null);
 
-  useEffect(() => {
-    let isMounted = true;
+  const loadUploads = useCallback(async () => {
+    setIsLoading(true);
+    setRequestError("");
 
-    async function loadUploads() {
-      setIsLoading(true);
-      setRequestError("");
+    try {
+      const payload = await getAdminUploads({
+        page,
+        limit: 20,
+      });
+      const data = getApiData(payload, {});
 
-      try {
-        const payload = await getAdminUploads({
-          page,
-          limit: 20,
-        });
-        const data = getApiData(payload, {});
-
-        if (!isMounted) {
-          return;
-        }
-
-        setUploads(data.items || []);
-        setPagination(data.pagination || null);
-      } catch (error) {
-        if (!isMounted) {
-          return;
-        }
-
-        setUploads([]);
-        setPagination(null);
-        setRequestError(
-          getApiErrorMessage(error, "Unable to load admin uploads right now."),
-        );
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
+      setUploads(data.items || []);
+      setPagination(data.pagination || null);
+    } catch (error) {
+      setUploads([]);
+      setPagination(null);
+      setRequestError(
+        getApiErrorMessage(error, "Unable to load admin uploads right now."),
+      );
+    } finally {
+      setIsLoading(false);
     }
-
-    loadUploads();
-
-    return () => {
-      isMounted = false;
-    };
   }, [page]);
+
+  useEffect(() => {
+    loadUploads();
+  }, [loadUploads]);
 
   async function handleDelete(id) {
     const shouldDelete = window.confirm(
@@ -92,7 +76,7 @@ export default function AdminUploads() {
 
     try {
       const payload = await deleteAdminUpload(id);
-      setUploads((current) => current.filter((upload) => upload.id !== id));
+      await loadUploads();
       setRequestSuccess(getApiMessage(payload, "Upload deleted successfully."));
     } catch (error) {
       setRequestError(
@@ -129,11 +113,7 @@ export default function AdminUploads() {
         captions,
       });
 
-      setUploads((current) =>
-        current.map((item) =>
-          item.id === upload.id ? { ...item, alt_text, captions } : item,
-        ),
-      );
+      await loadUploads();
       setRequestSuccess(getApiMessage(payload, "Upload updated successfully."));
     } catch (error) {
       setRequestError(

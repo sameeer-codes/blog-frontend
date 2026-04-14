@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import AdminNotice from "../../components/admin/AdminNotice";
 import AdminPageHeader from "../../components/admin/AdminPageHeader";
@@ -33,44 +33,28 @@ export default function AdminUserDetails() {
   const [isSavingStatus, setIsSavingStatus] = useState(false);
   const [isSavingRole, setIsSavingRole] = useState(false);
 
-  useEffect(() => {
-    let isMounted = true;
+  const loadUserDetails = useCallback(async () => {
+    setIsLoading(true);
+    setRequestError("");
 
-    async function loadUserDetails() {
-      setIsLoading(true);
-      setRequestError("");
+    try {
+      const payload = await getAdminUserById(Number(userId));
+      const data = getApiData(payload, null);
 
-      try {
-        const payload = await getAdminUserById(Number(userId));
-        const data = getApiData(payload, null);
-
-        if (!isMounted) {
-          return;
-        }
-
-        setDetails(data);
-      } catch (error) {
-        if (!isMounted) {
-          return;
-        }
-
-        setDetails(null);
-        setRequestError(
-          getApiErrorMessage(error, "Unable to load this user right now."),
-        );
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
+      setDetails(data);
+    } catch (error) {
+      setDetails(null);
+      setRequestError(
+        getApiErrorMessage(error, "Unable to load this user right now."),
+      );
+    } finally {
+      setIsLoading(false);
     }
-
-    loadUserDetails();
-
-    return () => {
-      isMounted = false;
-    };
   }, [userId]);
+
+  useEffect(() => {
+    loadUserDetails();
+  }, [loadUserDetails]);
 
   async function handleStatusChange(nextStatus) {
     if (!details?.user) {
@@ -87,17 +71,7 @@ export default function AdminUserDetails() {
         status: nextStatus,
       });
 
-      setDetails((current) =>
-        current
-          ? {
-              ...current,
-              user: {
-                ...current.user,
-                status: nextStatus,
-              },
-            }
-          : current,
-      );
+      await loadUserDetails();
       setRequestSuccess(getApiMessage(payload, "User status updated successfully."));
     } catch (error) {
       setRequestError(
@@ -123,17 +97,7 @@ export default function AdminUserDetails() {
         user_role: nextRole,
       });
 
-      setDetails((current) =>
-        current
-          ? {
-              ...current,
-              user: {
-                ...current.user,
-                user_role: nextRole,
-              },
-            }
-          : current,
-      );
+      await loadUserDetails();
       setRequestSuccess(getApiMessage(payload, "User role updated successfully."));
     } catch (error) {
       setRequestError(

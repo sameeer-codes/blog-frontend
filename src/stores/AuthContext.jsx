@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AuthContext } from "./auth-context";
 import { configureApiClient } from "../lib/api-client";
-import { getApiErrorMessage } from "../lib/api-helpers";
+import { getApiData, getApiErrorMessage } from "../lib/api-helpers";
 import {
   loginUser,
   logoutUser,
@@ -63,7 +63,7 @@ export const AuthProvider = ({ children }) => {
 
   const login = useCallback(async (credentials) => {
     const payload = await loginUser(credentials);
-    const nextToken = payload?.data?.jwt;
+    const nextToken = getApiData(payload, {})?.jwt;
 
     if (!nextToken) {
       throw new Error("The login response did not include a JWT.");

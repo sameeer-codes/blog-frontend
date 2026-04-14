@@ -5,7 +5,40 @@ export function getApiMessage(payload, fallback = "Request completed.") {
 }
 
 export function getApiData(payload, fallback = null) {
+  if (payload?.success === false) {
+    return fallback;
+  }
+
   return payload?.data ?? fallback;
+}
+
+export function getApiFieldErrors(source) {
+  const payload = axios.isAxiosError(source) ? source.response?.data : source;
+  const data = payload?.data;
+
+  if (!data || Array.isArray(data) || typeof data !== "object") {
+    return [];
+  }
+
+  return Object.entries(data).flatMap(([field, value]) => {
+    if (Array.isArray(value)) {
+      return value
+        .filter(Boolean)
+        .map((item) => `${field}: ${String(item)}`);
+    }
+
+    if (value && typeof value === "object") {
+      return Object.values(value)
+        .filter(Boolean)
+        .map((item) => `${field}: ${String(item)}`);
+    }
+
+    if (typeof value === "string" && value.trim()) {
+      return [`${field}: ${value}`];
+    }
+
+    return [];
+  });
 }
 
 export function getApiErrorMessage(
@@ -14,8 +47,13 @@ export function getApiErrorMessage(
 ) {
   if (axios.isAxiosError(error)) {
     const responseMessage = error.response?.data?.message;
+    const fieldErrors = getApiFieldErrors(error);
 
     if (responseMessage) {
+      if (fieldErrors.length > 0) {
+        return `${responseMessage} ${fieldErrors.slice(0, 2).join(" ")}`.trim();
+      }
+
       return responseMessage;
     }
 

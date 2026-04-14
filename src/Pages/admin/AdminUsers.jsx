@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router";
 import AdminNotice from "../../components/admin/AdminNotice";
 import AdminPageHeader from "../../components/admin/AdminPageHeader";
@@ -42,50 +42,34 @@ export default function AdminUsers() {
   const [isUpdatingId, setIsUpdatingId] = useState(null);
   const [isUpdatingRoleId, setIsUpdatingRoleId] = useState(null);
 
-  useEffect(() => {
-    let isMounted = true;
+  const loadUsers = useCallback(async () => {
+    setIsLoading(true);
+    setRequestError("");
 
-    async function loadUsers() {
-      setIsLoading(true);
-      setRequestError("");
+    try {
+      const payload = await getAdminUsers({
+        status: statusFilter,
+        page,
+        limit: 20,
+      });
+      const data = getApiData(payload, {});
 
-      try {
-        const payload = await getAdminUsers({
-          status: statusFilter,
-          page,
-          limit: 20,
-        });
-        const data = getApiData(payload, {});
-
-        if (!isMounted) {
-          return;
-        }
-
-        setUsers(data.items || []);
-        setPagination(data.pagination || null);
-      } catch (error) {
-        if (!isMounted) {
-          return;
-        }
-
-        setUsers([]);
-        setPagination(null);
-        setRequestError(
-          getApiErrorMessage(error, "Unable to load admin users right now."),
-        );
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
+      setUsers(data.items || []);
+      setPagination(data.pagination || null);
+    } catch (error) {
+      setUsers([]);
+      setPagination(null);
+      setRequestError(
+        getApiErrorMessage(error, "Unable to load admin users right now."),
+      );
+    } finally {
+      setIsLoading(false);
     }
-
-    loadUsers();
-
-    return () => {
-      isMounted = false;
-    };
   }, [page, statusFilter]);
+
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
 
   async function handleStatusChange(userId, nextStatus) {
     setIsUpdatingId(userId);
@@ -98,11 +82,7 @@ export default function AdminUsers() {
         status: nextStatus,
       });
 
-      setUsers((current) =>
-        current.map((user) =>
-          user.id === userId ? { ...user, status: nextStatus } : user,
-        ),
-      );
+      await loadUsers();
       setRequestSuccess(
         getApiMessage(payload, "User status updated successfully."),
       );
@@ -126,11 +106,7 @@ export default function AdminUsers() {
         user_role: nextRole,
       });
 
-      setUsers((current) =>
-        current.map((user) =>
-          user.id === userId ? { ...user, user_role: nextRole } : user,
-        ),
-      );
+      await loadUsers();
       setRequestSuccess(getApiMessage(payload, "User role updated successfully."));
     } catch (error) {
       setRequestError(

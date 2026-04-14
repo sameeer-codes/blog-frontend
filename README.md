@@ -88,21 +88,16 @@ These routes are wrapped by `src/utils/GuestRoute.jsx`.
 
 ### Admin Routes
 
-These routes render inside `src/Layouts/ProtectedLayout.jsx`.
-
-Current note:
-
-- The admin area is temporarily left open for testing and is not currently wrapped by `ProtectedRoute`
-- The underlying admin API still expects an approved admin session with both bearer token and refresh cookie
+These routes are wrapped by `src/utils/ProtectedRoute.jsx` and render inside `src/Layouts/ProtectedLayout.jsx`.
 
 | Route | Access | Purpose | Notes |
 | --- | --- | --- | --- |
-| `/admin` | Testing-open admin shell | Admin landing page | Entry point into the admin workspace |
-| `/admin/users` | Testing-open admin shell | Admin users table | Lists users from `GET /api/admin/users` with status and role controls |
-| `/admin/users/:userId` | Testing-open admin shell | Single user detail | Fetches one user plus that user's posts and uploads from `GET /api/admin/users/single` |
-| `/admin/posts` | Testing-open admin shell | Admin posts table | Lists posts from `GET /api/admin/posts`, supports status changes and delete |
-| `/admin/posts/:postId/edit` | Testing-open admin shell | Admin post editor | Updates post content through `PATCH /api/admin/posts` |
-| `/admin/uploads` | Testing-open admin shell | Admin uploads table | Lists uploads from `GET /api/admin/uploads`, supports metadata edits and delete |
+| `/admin` | Authenticated users only | Admin landing page | Entry point into the admin workspace |
+| `/admin/users` | Authenticated users only | Admin users table | Lists users from `GET /api/admin/users` with status and role controls |
+| `/admin/users/:userId` | Authenticated users only | Single user detail | Fetches one user plus that user's posts and uploads from `GET /api/admin/users/single` |
+| `/admin/posts` | Authenticated users only | Admin posts table | Lists posts from `GET /api/admin/posts`, supports status changes, edit, and delete |
+| `/admin/posts/:postId/edit` | Authenticated users only | Admin post editor | Updates post content through `PATCH /api/admin/posts` |
+| `/admin/uploads` | Authenticated users only | Admin uploads table | Lists uploads from `GET /api/admin/uploads`, supports metadata edits and delete |
 
 ### Protected Routes
 
@@ -175,3 +170,13 @@ Currently mapped endpoints:
 - `GET /api/admin/uploads`
 - `PATCH /api/admin/uploads`
 - `DELETE /api/admin/uploads`
+
+## Response Handling
+
+The frontend now follows the API mapping envelope more closely:
+
+- Success messages are taken from the backend `message` field wherever useful
+- `data` is treated as optional and is only read when the envelope indicates success
+- Validation and field-level backend errors inside `data` are surfaced through the shared API error helper
+- Paginated endpoints are treated as paginated by default across public, author, and admin tables
+- Update and delete handlers now refetch list/detail data after success instead of relying on optimistic local assumptions when the backend does not return a fresh record
